@@ -1,38 +1,43 @@
-/*********************************************************************
- * Software License Agreement (BSD License)
+/**
+ * @file fcl_utils.cpp
+ * @brief Tesseract ROS FCL Utility Functions.
  *
- *  Copyright (c) 2011, Willow Garage, Inc.
- *  All rights reserved.
+ * @author Levi Armstrong
+ * @date Dec 18, 2017
+ * @version TODO
+ * @bug No known bugs
  *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
+ * @copyright Copyright (c) 2017, Southwest Research Institute
  *
- *   * Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above
- *     copyright notice, this list of conditions and the following
- *     disclaimer in the documentation and/or other materials provided
- *     with the distribution.
- *   * Neither the name of Willow Garage nor the names of its
- *     contributors may be used to endorse or promote products derived
- *     from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
- *********************************************************************/
-
-/* Author: Ioan Sucan, Jia Pan */
+ * @par License
+ * Software License Agreement (BSD)
+ * @par
+ * All rights reserved.
+ * @par
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * @par
+ *  * Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above
+ *    copyright notice, this list of conditions and the following
+ *    disclaimer in the documentation and/or other materials provided
+ *    with the distribution.
+ * @par
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include <tesseract_collision/fcl/fcl_utils.h>
 #include <geometric_shapes/shapes.h>
@@ -225,8 +230,8 @@ bool collisionCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, voi
   if (cdata->done)
     return true;
 
-  const FCLCollisionGeometryWrapper* cd1 = static_cast<const FCLCollisionGeometryWrapper*>(o1->collisionGeometry()->getUserData());
-  const FCLCollisionGeometryWrapper* cd2 = static_cast<const FCLCollisionGeometryWrapper*>(o2->collisionGeometry()->getUserData());
+  const FCLCollisionObjectWrapper* cd1 = static_cast<const FCLCollisionObjectWrapper*>(o1->collisionGeometry()->getUserData());
+  const FCLCollisionObjectWrapper* cd2 = static_cast<const FCLCollisionObjectWrapper*>(o2->collisionGeometry()->getUserData());
 
   bool needs_collision = (cd1->m_collisionFilterGroup & cd2->m_collisionFilterMask) &&
       (cd2->m_collisionFilterGroup & cd1->m_collisionFilterMask) &&
@@ -265,15 +270,15 @@ bool collisionCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, voi
   return cdata->done;
 }
 
-bool distanceDetailedCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void* data, double& min_dist)
+bool distanceCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void* data, double& min_dist)
 {
   ContactDistanceData* cdata = reinterpret_cast<ContactDistanceData*>(data);
 
   if (cdata->done)
     return true;
 
-  const FCLCollisionGeometryWrapper* cd1 = static_cast<const FCLCollisionGeometryWrapper*>(o1->collisionGeometry()->getUserData());
-  const FCLCollisionGeometryWrapper* cd2 = static_cast<const FCLCollisionGeometryWrapper*>(o2->collisionGeometry()->getUserData());
+  const FCLCollisionObjectWrapper* cd1 = static_cast<const FCLCollisionObjectWrapper*>(o1->collisionGeometry()->getUserData());
+  const FCLCollisionObjectWrapper* cd2 = static_cast<const FCLCollisionObjectWrapper*>(o2->collisionGeometry()->getUserData());
 
   bool needs_collision = (cd1->m_collisionFilterGroup & cd2->m_collisionFilterMask) &&
       (cd2->m_collisionFilterGroup & cd1->m_collisionFilterMask) &&
@@ -316,24 +321,26 @@ bool distanceDetailedCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* 
   return cdata->done;
 }
 
-void FCLObject::registerTo(fcl::BroadPhaseCollisionManagerd* manager)
+FCLCollisionObjectWrapper::FCLCollisionObjectWrapper(const std::string& name,
+                                                     const int& type_id,
+                                                     const std::vector<shapes::ShapeConstPtr>& shapes,
+                                                     const EigenSTL::vector_Affine3d& shape_poses,
+                                                     const CollisionObjectTypeVector& collision_object_types,
+                                                     const std::vector<FCLCollisionGeometryPtr>& collision_geometries,
+                                                     const std::vector<FCLCollisionObjectPtr>& collision_objects)
+  : name_(name)
+  , type_id_(type_id)
+  , shapes_(shapes)
+  , shape_poses_(shape_poses)
+  , collision_object_types_(collision_object_types)
+  , collision_geometries_(collision_geometries)
 {
-  std::vector<fcl::CollisionObjectd*> collision_objects(collision_objects_.size());
-  for (std::size_t i = 0; i < collision_objects_.size(); ++i)
-    collision_objects[i] = collision_objects_[i].get();
-  if (!collision_objects.empty())
-    manager->registerObjects(collision_objects);
+  collision_objects_.reserve(collision_objects.size());
+  for (const auto& co : collision_objects)
+  {
+    FCLCollisionObjectPtr collObj(new fcl::CollisionObjectd(*co));
+    collision_objects_.push_back(collObj);
+  }
 }
 
-void FCLObject::unregisterFrom(fcl::BroadPhaseCollisionManagerd* manager)
-{
-  for (std::size_t i = 0; i < collision_objects_.size(); ++i)
-    manager->unregisterObject(collision_objects_[i].get());
-}
-
-void FCLObject::clear()
-{
-  collision_objects_.clear();
-  collision_geometry_.clear();
-}
 }
