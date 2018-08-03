@@ -42,7 +42,7 @@
 #ifndef TESSERACT_COLLISION_FCL_UTILS_H
 #define TESSERACT_COLLISION_FCL_UTILS_H
 
-#include <fcl/broadphase/broadphase_collision_manager.h>
+//#include <fcl/broadphase/broadphase_collision_manager.h>
 #include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
 #include <fcl/narrowphase/collision.h>
 #include <fcl/narrowphase/distance.h>
@@ -56,6 +56,8 @@
 namespace tesseract
 {
 typedef std::shared_ptr<fcl::CollisionGeometryd> FCLCollisionGeometryPtr;
+typedef std::shared_ptr<fcl::CollisionObjectd> FCLCollisionObjectPtr;
+typedef std::shared_ptr<const fcl::CollisionObjectd> FCLCollisionObjectConstPtr;
 
 enum FCLCollisionFilterGroups
 {
@@ -98,6 +100,16 @@ public:
     }
   }
 
+  const std::vector<FCLCollisionObjectPtr>& getCollisionObjects() const
+  {
+    return collision_objects_;
+  }
+
+  std::vector<FCLCollisionObjectPtr>& getCollisionObjects()
+  {
+    return collision_objects_;
+  }
+
   std::shared_ptr<FCLCollisionObjectWrapper> clone()
   {
     std::shared_ptr<FCLCollisionObjectWrapper> clone_cow(
@@ -123,21 +135,18 @@ protected:
   const std::vector<shapes::ShapeConstPtr>& shapes_;
   const EigenSTL::vector_Affine3d& shape_poses_;
   const CollisionObjectTypeVector& collision_object_types_;
-  const std::vector<FCLCollisionGeometryPtr> collision_geometries_;
+  std::vector<FCLCollisionGeometryPtr> collision_geometries_;
   std::vector<FCLCollisionObjectPtr> collision_objects_;
 };
 
-fcl::CollisionGeometryd* createShapePrimitive(const shapes::ShapeConstPtr& geom,
-                                              const CollisionObjectType& collision_object_type);
+FCLCollisionGeometryPtr createShapePrimitive(const shapes::ShapeConstPtr& geom,
+                                             const CollisionObjectType& collision_object_type);
 
-typedef FCLCollisionObjectWrapper COW;
-typedef std::shared_ptr<FCLCollisionObjectWrapper> COWPtr;
-typedef std::shared_ptr<const FCLCollisionObjectWrapper> COWConstPtr;
-typedef std::map<std::string, COWPtr> Link2Cow;
-typedef std::map<std::string, COWConstPtr> Link2ConstCow;
-
-typedef std::shared_ptr<fcl::CollisionObjectd> FCLCollisionObjectPtr;
-typedef std::shared_ptr<const fcl::CollisionObjectd> FCLCollisionObjectConstPtr;
+typedef FCLCollisionObjectWrapper FCLCOW;
+typedef std::shared_ptr<FCLCollisionObjectWrapper> FCLCOWPtr;
+typedef std::shared_ptr<const FCLCollisionObjectWrapper> FCLCOWConstPtr;
+typedef std::map<std::string, FCLCOWPtr> Link2FCLCOW;
+typedef std::map<std::string, FCLCOWConstPtr> Link2ConstFCLCOW;
 
 struct FCLManager
 {
@@ -146,18 +155,30 @@ struct FCLManager
     manager_ = std::unique_ptr<fcl::BroadPhaseCollisionManagerd>(new fcl::DynamicAABBTreeCollisionManagerd());
   }
 
-  const COWPtr& getCollisionObject(const std::string& name)
+  FCLCOWPtr cloneCollisionObject(const std::string& name) const
+  {
+    auto it = link2cow_.find(name);
+    if (it != link2cow_.end())
+      return it->second->clone();
+
+    return nullptr;
+  }
+
+  const FCLCOWPtr& getCollisionObject(const std::string& name)
   {
     assert(link2cow_.find(name) != link2cow_.end());
     return link2cow_[name];
   }
 
-  Link2Cow& getCollisionObjects() { return link2cow_; }
+  Link2FCLCOW& getCollisionObjects() { return link2cow_; }
 
-  void addCollisionObject(COWPtr& cow)
+  void addCollisionObject(FCLCOWPtr& cow)
   {
     link2cow_[cow->getName()] = cow;
-    manager_->registerObjects(cow->collision_geometries_);
+
+    std::vector<FCLCollisionObjectPtr>& objects = cow->getCollisionObjects();
+    for (auto& co : objects)
+      manager_->registerObject(co.get());
   }
 
   bool removeCollisionObject(const std::string& name)
@@ -165,7 +186,10 @@ struct FCLManager
     auto it = link2cow_.find(name);
     if (it != link2cow_.end())
     {
-      manager_->unregisterObject(it->collision_geometries_);
+      std::vector<FCLCollisionObjectPtr>& objects = it->second->getCollisionObjects();
+      for (auto& co : objects)
+        manager_->unregisterObject(co.get());
+
       link2cow_.erase(name);
       return true;
     }
@@ -207,9 +231,22 @@ struct FCLManager
     return false;
   }
 
+  /// @brief perform collision test for the objects belonging to the manager (i.e., N^2 self collision)
+  void collide(void* cdata, fcl::CollisionCallBack<double> callback) const
+  {
+    manager_->collide(cdata, callback);
+  }
+
+  /// @brief perform distance test for the objects belonging to the manager (i.e., N^2 self distance)
+  void distance(void* cdata, fcl::DistanceCallBack<double> callback) const
+  {
+    manager_->distance(cdata, callback);
+  }
+
+
 private:
   std::unique_ptr<fcl::BroadPhaseCollisionManagerd> manager_;
-  Link2Cow link2cow_;
+  Link2FCLCOW link2cow_;
 };
 
 bool collisionCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void* data);

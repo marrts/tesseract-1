@@ -15,7 +15,7 @@ typedef std::pair<std::string, std::string> ObjectPairKey;
  * @param obj2 Second collision object name
  * @return The collision pair key
  */
-static ObjectPairKey getObjectPairKey(const std::string& obj1, const std::string& obj2)
+inline ObjectPairKey getObjectPairKey(const std::string& obj1, const std::string& obj2)
 {
   return obj1 < obj2 ? std::make_pair(obj1, obj2) : std::make_pair(obj2, obj1);
 }

@@ -1,12 +1,11 @@
 
 #include "tesseract_collision/bullet/bullet_contact_checker.h"
+#include "tesseract_collision/fcl/fcl_contact_checker.h"
 #include <gtest/gtest.h>
 #include <ros/ros.h>
 
-TEST(TesseractCollisionUnit, CollisionUnit)
+void runTest(tesseract::ContactCheckerBase& checker)
 {
-  tesseract::BulletContactChecker checker;
-
   // Add box to checker
   shapes::ShapePtr box(new shapes::Box(1, 1, 1));
   Eigen::Affine3d box_pose;
@@ -36,7 +35,7 @@ TEST(TesseractCollisionUnit, CollisionUnit)
   checker.addObject("thin_box_link", 0, obj2_shapes, obj2_poses, obj2_types);
 
   // Add sphere to checker
-  shapes::ShapePtr sphere(new shapes::Sphere(0.25));
+  shapes::ShapePtr sphere(shapes::createMeshFromResource("package://tesseract_collision/test/sphere.stl"));
   Eigen::Affine3d sphere_pose;
   sphere_pose.setIdentity();
 
@@ -45,7 +44,7 @@ TEST(TesseractCollisionUnit, CollisionUnit)
   tesseract::CollisionObjectTypeVector obj3_types;
   obj3_shapes.push_back(sphere);
   obj3_poses.push_back(sphere_pose);
-  obj3_types.push_back(tesseract::CollisionObjectType::UseShapeType);
+  obj3_types.push_back(tesseract::CollisionObjectType::ConvexHull);
 
   checker.addObject("sphere_link", 0, obj3_shapes, obj3_poses, obj3_types);
 
@@ -60,15 +59,26 @@ TEST(TesseractCollisionUnit, CollisionUnit)
   tesseract::TransformMap location;
   location["box_link"] = Eigen::Affine3d::Identity();
   location["sphere_link"] = Eigen::Affine3d::Identity();
+  location["sphere_link"].translation()(0) = 0.2;
 
   tesseract::ContactResultMap result;
-  checker.calcCollisionsDiscrete(req, location, result);
+  checker.calcDistancesDiscrete(req, location, result);
 
   tesseract::ContactResultVector result_vector;
   tesseract::moveContactResultsMapToContactResultsVector(result, result_vector);
 
-  EXPECT_LT(std::abs(result_vector[0].distance + 0.75), 0.0001);
   EXPECT_TRUE(!result_vector.empty());
+  EXPECT_NEAR(result_vector[0].distance, -0.55, 0.0001);
+  EXPECT_NEAR(result_vector[0].nearest_points[0][0], 0.5, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[0][1], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[0][2], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[1][0], -0.05, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[1][1], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[1][2], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[0], 1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[1], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[2], 0.0, 0.001);
+
 
   // Test object is out side the contact distance
   location["sphere_link"].translation() = Eigen::Vector3d(1, 0, 0);
@@ -85,33 +95,32 @@ TEST(TesseractCollisionUnit, CollisionUnit)
   result_vector.clear();
   req.contact_distance = 0.25;
 
-  checker.calcCollisionsDiscrete(req, location, result);
+  checker.calcDistancesDiscrete(req, location, result);
   tesseract::moveContactResultsMapToContactResultsVector(result, result_vector);
 
-  EXPECT_LT(std::abs(0.25 - result_vector[0].distance), 0.0001);
   EXPECT_TRUE(!result_vector.empty());
+  EXPECT_NEAR(result_vector[0].distance, 0.25, 0.0001);
+  EXPECT_NEAR(result_vector[0].nearest_points[0][0], 0.5, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[0][1], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[0][2], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[1][0], 0.75, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[1][1], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[1][2], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[0], 1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[1], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[2], 0.0, 0.001);
+}
 
-  // Test Cast object
-  result.clear();
-  result_vector.clear();
-  tesseract::TransformMap location2;
-  location.clear();
-  location["thin_box_link"] = Eigen::Affine3d::Identity();
-  location["sphere_link"] = Eigen::Affine3d::Identity();
-  location2["thin_box_link"] = Eigen::Affine3d::Identity();
-  location2["sphere_link"] = Eigen::Affine3d::Identity();
+TEST(TesseractCollisionUnit, FCLCollisionBoxSphereUnit)
+{
+  tesseract::FCLContactChecker checker;
+  runTest(checker);
+}
 
-  location["sphere_link"].translation() = Eigen::Vector3d(1, 0, 0);
-  location2["sphere_link"].translation() = Eigen::Vector3d(-1, 0, 0);
-
-  req.link_names.clear();
-  req.link_names.push_back("sphere_link");
-  req.contact_distance = 0.1;
-  req.type = tesseract::ContactRequestType::CLOSEST;
-
-  checker.calcCollisionsContinuous(req, location, location2, result);
-  tesseract::moveContactResultsMapToContactResultsVector(result, result_vector);
-  EXPECT_TRUE(!result_vector.empty());
+TEST(TesseractCollisionUnit, BulletCollisionBoxSphereUnit)
+{
+  tesseract::BulletContactChecker checker;
+  runTest(checker);
 }
 
 int main(int argc, char** argv)

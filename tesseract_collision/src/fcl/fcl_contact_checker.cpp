@@ -54,7 +54,7 @@ FCLContactChecker::FCLContactChecker()
 void FCLContactChecker::calcDistancesDiscrete(ContactResultMap& contacts)
 {
   ContactDistanceData contact_data(&request_, &contacts);
-  manager_.manager_->distance(&contact_data, &distanceCallback);
+  manager_.distance(&contact_data, &distanceCallback);
 }
 
 void FCLContactChecker::calcDistancesDiscrete(const ContactRequest& req,
@@ -66,9 +66,9 @@ void FCLContactChecker::calcDistancesDiscrete(const ContactRequest& req,
 
   std::vector<std::string> active_objects;
 
-  constructFCLObject(manager, active_objects, req.contact_distance, transforms, req.link_names);
+  constructFCLObject(manager, active_objects, transforms, req.link_names);
 
-  manager.manager_->distance(&contact_data, &distanceCallback);
+  manager.distance(&contact_data, &distanceCallback);
 }
 
 void FCLContactChecker::calcDistancesContinuous(const ContactRequest& req,
@@ -82,7 +82,7 @@ void FCLContactChecker::calcDistancesContinuous(const ContactRequest& req,
 void FCLContactChecker::calcCollisionsDiscrete(ContactResultMap& contacts)
 {
   ContactDistanceData contact_data(&request_, &contacts);
-  manager_.manager_->collide(&contact_data, &distanceCallback);
+  manager_.collide(&contact_data, &collisionCallback);
 }
 
 void FCLContactChecker::calcCollisionsDiscrete(const ContactRequest& req,
@@ -94,9 +94,9 @@ void FCLContactChecker::calcCollisionsDiscrete(const ContactRequest& req,
 
   std::vector<std::string> active_objects;
 
-  constructFCLObject(manager, active_objects, req.contact_distance, transforms, req.link_names);
+  constructFCLObject(manager, active_objects, transforms, req.link_names);
 
-  manager.manager_->collide(&contact_data, &collisionCallback);
+  manager.collide(&contact_data, &collisionCallback);
 }
 
 void FCLContactChecker::calcCollisionsContinuous(const ContactRequest& req,
@@ -112,7 +112,7 @@ bool FCLContactChecker::addObject(const std::string& name,
                                   const std::vector<shapes::ShapeConstPtr>& shapes,
                                   const EigenSTL::vector_Affine3d& shape_poses,
                                   const CollisionObjectTypeVector& collision_object_types,
-                                  bool enabled = true)
+                                  bool enabled)
 {
   // dont add object that does not have geometry
   if (shapes.empty() || shape_poses.empty())
@@ -120,8 +120,9 @@ bool FCLContactChecker::addObject(const std::string& name,
     ROS_DEBUG("ignoring link %s", name.c_str());
     return false;
   }
-  assert(shapes.size() == shape_poses.size() == CollisionObjectTypeVector.size());
-  COWPtr new_cow(new FCLCollisionObjectWrapper(name, mask_id, shapes, shape_poses, collision_object_types));
+  assert(shapes.size() == shape_poses.size());
+  assert(shapes.size() == collision_object_types.size());
+  FCLCOWPtr new_cow(new FCLCOW(name, mask_id, shapes, shape_poses, collision_object_types));
 
   if (new_cow)
   {
@@ -188,9 +189,6 @@ void FCLContactChecker::setContactRequest(const ContactRequest& req)
       active_objects_.push_back(element.first);
       element.second->m_collisionFilterMask = FCLCollisionFilterGroups::StaticFilter | FCLCollisionFilterGroups::KinematicFilter;
     }
-
-    element.second->getBroadphaseHandle()->m_collisionFilterGroup = element.second->m_collisionFilterGroup;
-    element.second->getBroadphaseHandle()->m_collisionFilterMask = element.second->m_collisionFilterMask;
   }
 }
 
@@ -198,20 +196,19 @@ const ContactRequest& FCLContactChecker::getContactRequest() const { return requ
 
 void FCLContactChecker::constructFCLObject(FCLManager& manager,
                                            std::vector<std::string>& active_objects,
-                                           double contact_distance,
                                            const TransformMap& transforms,
                                            const std::vector<std::string>& active_links,
-                                           bool continuous = false) const
+                                           bool continuous) const
 {
   for (const auto& transform : transforms)
   {
-    COWPtr new_cow = manager_->cloneCollisionObject(transform.first);
+    FCLCOWPtr new_cow = manager_.cloneCollisionObject(transform.first);
     if (!new_cow || !new_cow->m_enabled)
       continue;
 
-    assert(new_cow->getCollisionShape());
+    assert(new_cow);
 
-    new_cow->setWorldTransform(convertEigenToBt(transform.second));
+    new_cow->setCollisionObjectsTransform(transform.second);
 
     // For descrete checks we can check static to kinematic and kinematic to
     // kinematic
@@ -239,121 +236,119 @@ void FCLContactChecker::constructFCLObject(FCLManager& manager,
           (new_cow->m_collisionFilterMask = FCLCollisionFilterGroups::StaticFilter | FCLCollisionFilterGroups::KinematicFilter);
     }
 
-    setContactDistance(new_cow, contact_distance);
     manager.addCollisionObject(new_cow);
   }
 }
 
 void FCLContactChecker::constructFCLObject(FCLManager& manager,
                                            std::vector<std::string>& active_objects,
-                                           double contact_distance,
                                            const TransformMap& transforms1,
                                            const TransformMap& transforms2,
                                            const std::vector<std::string>& active_links) const
 {
-  assert(transforms1.size() == transforms2.size());
+//  assert(transforms1.size() == transforms2.size());
 
-  auto it1 = transforms1.begin();
-  auto it2 = transforms2.begin();
-  while (it1 != transforms1.end())
-  {
-    COWPtr new_cow = manager_->cloneCollisionObject(it1->first);
-    if (!new_cow || !new_cow->m_enabled)
-    {
-      std::advance(it1, 1);
-      std::advance(it2, 1);
-      continue;
-    }
+//  auto it1 = transforms1.begin();
+//  auto it2 = transforms2.begin();
+//  while (it1 != transforms1.end())
+//  {
+//    COWPtr new_cow = manager_->cloneCollisionObject(it1->first);
+//    if (!new_cow || !new_cow->m_enabled)
+//    {
+//      std::advance(it1, 1);
+//      std::advance(it2, 1);
+//      continue;
+//    }
 
-    assert(new_cow->getCollisionShape());
-    assert(transforms2.find(it1->first) != transforms2.end());
+//    assert(new_cow->getCollisionShape());
+//    assert(transforms2.find(it1->first) != transforms2.end());
 
-    new_cow->m_collisionFilterGroup = FCLCollisionFilterGroups::KinematicFilter;
-    if (!active_links.empty())
-    {
-      bool check = (std::find_if(active_links.begin(), active_links.end(), [&](std::string link) {
-                      return link == it1->first;
-                    }) == active_links.end());
-      if (check)
-      {
-        new_cow->m_collisionFilterGroup = FCLCollisionFilterGroups::StaticFilter;
-      }
-    }
+//    new_cow->m_collisionFilterGroup = FCLCollisionFilterGroups::KinematicFilter;
+//    if (!active_links.empty())
+//    {
+//      bool check = (std::find_if(active_links.begin(), active_links.end(), [&](std::string link) {
+//                      return link == it1->first;
+//                    }) == active_links.end());
+//      if (check)
+//      {
+//        new_cow->m_collisionFilterGroup = FCLCollisionFilterGroups::StaticFilter;
+//      }
+//    }
 
-    if (new_cow->m_collisionFilterGroup == FCLCollisionFilterGroups::StaticFilter)
-    {
-      new_cow->setWorldTransform(convertEigenToBt(it1->second));
-      new_cow->m_collisionFilterMask = FCLCollisionFilterGroups::KinematicFilter;
-    }
-    else
-    {
-      active_objects.push_back(it1->first);
+//    if (new_cow->m_collisionFilterGroup == FCLCollisionFilterGroups::StaticFilter)
+//    {
+//      new_cow->setWorldTransform(convertEigenToBt(it1->second));
+//      new_cow->m_collisionFilterMask = FCLCollisionFilterGroups::KinematicFilter;
+//    }
+//    else
+//    {
+//      active_objects.push_back(it1->first);
 
-      if (btBroadphaseProxy::isConvex(new_cow->getCollisionShape()->getShapeType()))
-      {
-        btConvexShape* convex = static_cast<btConvexShape*>(new_cow->getCollisionShape());
-        assert(convex != NULL);
+//      if (btBroadphaseProxy::isConvex(new_cow->getCollisionShape()->getShapeType()))
+//      {
+//        btConvexShape* convex = static_cast<btConvexShape*>(new_cow->getCollisionShape());
+//        assert(convex != NULL);
 
-        btTransform tf1 = convertEigenToBt(it1->second);
-        btTransform tf2 = convertEigenToBt(it2->second);
+//        btTransform tf1 = convertEigenToBt(it1->second);
+//        btTransform tf2 = convertEigenToBt(it2->second);
 
-        CastHullShape* shape = new CastHullShape(convex, tf1.inverseTimes(tf2));
-        assert(shape != NULL);
+//        CastHullShape* shape = new CastHullShape(convex, tf1.inverseTimes(tf2));
+//        assert(shape != NULL);
 
-        new_cow->manage(shape);
-        new_cow->setCollisionShape(shape);
-        new_cow->setWorldTransform(tf1);
-      }
-      else if (btBroadphaseProxy::isCompound(new_cow->getCollisionShape()->getShapeType()))
-      {
-        btCompoundShape* compound = static_cast<btCompoundShape*>(new_cow->getCollisionShape());
-        const Eigen::Affine3d& tf1 = it1->second;
-        const Eigen::Affine3d& tf2 = it2->second;
+//        new_cow->manage(shape);
+//        new_cow->setCollisionShape(shape);
+//        new_cow->setWorldTransform(tf1);
+//      }
+//      else if (btBroadphaseProxy::isCompound(new_cow->getCollisionShape()->getShapeType()))
+//      {
+//        btCompoundShape* compound = static_cast<btCompoundShape*>(new_cow->getCollisionShape());
+//        const Eigen::Affine3d& tf1 = it1->second;
+//        const Eigen::Affine3d& tf2 = it2->second;
 
-        btCompoundShape* new_compound = new btCompoundShape(/*dynamicAABBtree=*/false);
+//        btCompoundShape* new_compound = new btCompoundShape(/*dynamicAABBtree=*/false);
 
-        for (int i = 0; i < compound->getNumChildShapes(); ++i)
-        {
-          btConvexShape* convex = static_cast<btConvexShape*>(compound->getChildShape(i));
-          assert(convex != NULL);
+//        for (int i = 0; i < compound->getNumChildShapes(); ++i)
+//        {
+//          btConvexShape* convex = static_cast<btConvexShape*>(compound->getChildShape(i));
+//          assert(convex != NULL);
 
-          btTransform geomTrans = compound->getChildTransform(i);
-          btTransform child_tf1 = convertEigenToBt(tf1) * geomTrans;
-          btTransform child_tf2 = convertEigenToBt(tf2) * geomTrans;
+//          btTransform geomTrans = compound->getChildTransform(i);
+//          btTransform child_tf1 = convertEigenToBt(tf1) * geomTrans;
+//          btTransform child_tf2 = convertEigenToBt(tf2) * geomTrans;
 
-          btCollisionShape* subshape = new CastHullShape(convex, child_tf1.inverseTimes(child_tf2));
-          assert(subshape != NULL);
+//          btCollisionShape* subshape = new CastHullShape(convex, child_tf1.inverseTimes(child_tf2));
+//          assert(subshape != NULL);
 
-          if (subshape != NULL)
-          {
-            new_cow->manage(subshape);
-            subshape->setMargin(BULLET_MARGIN);
-            new_compound->addChildShape(geomTrans, subshape);
-          }
-        }
+//          if (subshape != NULL)
+//          {
+//            new_cow->manage(subshape);
+//            subshape->setMargin(BULLET_MARGIN);
+//            new_compound->addChildShape(geomTrans, subshape);
+//          }
+//        }
 
-        new_compound->setMargin(BULLET_MARGIN);  // margin: compound. seems to
-                                                 // have no effect when positive
-                                                 // but has an effect when
-                                                 // negative
-        new_cow->manage(new_compound);
-        new_cow->setCollisionShape(new_compound);
-        new_cow->setWorldTransform(convertEigenToBt(tf1));
-      }
-      else
-      {
-        ROS_ERROR("I can only continuous collision check convex shapes and "
-                  "compound shapes made of convex shapes");
-      }
+//        new_compound->setMargin(BULLET_MARGIN);  // margin: compound. seems to
+//                                                 // have no effect when positive
+//                                                 // but has an effect when
+//                                                 // negative
+//        new_cow->manage(new_compound);
+//        new_cow->setCollisionShape(new_compound);
+//        new_cow->setWorldTransform(convertEigenToBt(tf1));
+//      }
+//      else
+//      {
+//        ROS_ERROR("I can only continuous collision check convex shapes and "
+//                  "compound shapes made of convex shapes");
+//      }
 
-      new_cow->m_collisionFilterMask = btBroadphaseProxy::StaticFilter;
-    }
+//      new_cow->m_collisionFilterMask = btBroadphaseProxy::StaticFilter;
+//    }
 
-    setContactDistance(new_cow, contact_distance);
-    manager.addCollisionObject(new_cow);
-    std::advance(it1, 1);
-    std::advance(it2, 1);
-  }
+//    setContactDistance(new_cow, contact_distance);
+//    manager.addCollisionObject(new_cow);
+//    std::advance(it1, 1);
+//    std::advance(it2, 1);
+//  }
 }
 
 }

@@ -55,10 +55,9 @@
 
 namespace tesseract
 {
-fcl::CollisionGeometryd* createShapePrimitive(const shapes::ShapeConstPtr& geom,
-                                              const CollisionObjectType& collision_object_type)
+FCLCollisionGeometryPtr createShapePrimitive(const shapes::ShapeConstPtr& geom,
+                                             const CollisionObjectType& collision_object_type)
 {
-  fcl::CollisionGeometryd* subshape = 0;
 
   switch (geom->type)
   {
@@ -66,36 +65,32 @@ fcl::CollisionGeometryd* createShapePrimitive(const shapes::ShapeConstPtr& geom,
     {
       assert(collision_object_type == CollisionObjectType::UseShapeType);
       const shapes::Plane* p = static_cast<const shapes::Plane*>(geom.get());
-      subshape = new fcl::Planed(p->a, p->b, p->c, p->d);
+      return FCLCollisionGeometryPtr(new fcl::Planed(p->a, p->b, p->c, p->d));
     }
     case shapes::BOX:
     {
       assert(collision_object_type == CollisionObjectType::UseShapeType);
       const shapes::Box* s = static_cast<const shapes::Box*>(geom.get());
       const double* size = s->size;
-      subshape = new fcl::Boxd(size[0], size[1], size[2]);
-      return subshape;
+      return FCLCollisionGeometryPtr(new fcl::Boxd(size[0], size[1], size[2]));
     }
     case shapes::SPHERE:
     {
       assert(collision_object_type == CollisionObjectType::UseShapeType);
       const shapes::Sphere* s = static_cast<const shapes::Sphere*>(geom.get());
-      subshape = new fcl::Sphered(s->radius);
-      return subshape;
+      return FCLCollisionGeometryPtr(new fcl::Sphered(s->radius));
     }
     case shapes::CYLINDER:
     {
       assert(collision_object_type == CollisionObjectType::UseShapeType);
       const shapes::Cylinder* s = static_cast<const shapes::Cylinder*>(geom.get());
-      subshape = new fcl::Cylinderd(s->radius, s->length);
-      return subshape;
+      return FCLCollisionGeometryPtr(new fcl::Cylinderd(s->radius, s->length));
     }
     case shapes::CONE:
     {
       assert(collision_object_type == CollisionObjectType::UseShapeType);
       const shapes::Cone* s = static_cast<const shapes::Cone*>(geom.get());
-      subshape = new fcl::Coned(s->radius, s->length);
-      return subshape;
+      return FCLCollisionGeometryPtr(new fcl::Coned(s->radius, s->length));
     }
     case shapes::MESH:
     {
@@ -128,15 +123,19 @@ fcl::CollisionGeometryd* createShapePrimitive(const shapes::ShapeConstPtr& geom,
 
           int triangle_count = triangles.size()/3;
           Eigen::Vector3d* fcl_vertices = new Eigen::Vector3d[vertices.size()];
-    //        Eigen::Vector3d* fcl_plane_normals = new Eigen::Vector3d[planes.size()];
-    //        double* fcl_plane_dis = new double[planes.size()];
-          Eigen::Vector3d* fcl_plane_normals = new Eigen::Vector3d[triangle_count];
-          double* fcl_plane_dis = new double[triangle_count];
+          Eigen::Vector3d* fcl_plane_normals = new Eigen::Vector3d[planes.size()];
+          double* fcl_plane_dis = new double[planes.size()];
           int* polygons = new int[4 * triangle_count];
 
           for (unsigned i = 0; i < vertices.size(); ++i)
           {
             fcl_vertices[i] = vertices[i];
+          }
+
+          for (unsigned i = 0; i < planes.size(); ++i)
+          {
+            fcl_plane_normals[i] = planes[i].head<3>();
+            fcl_plane_dis[i] = planes[i][3];
           }
 
           for(auto i = 0; i < triangle_count; ++i)
@@ -149,17 +148,9 @@ fcl::CollisionGeometryd* createShapePrimitive(const shapes::ShapeConstPtr& geom,
             polygons[4*i + 1] = i1;
             polygons[4*i + 2] = i2;
             polygons[4*i + 3] = i3;
-
-            Eigen::Vector3d v1 = vertices[i1] - vertices[i2];
-            Eigen::Vector3d v2 = vertices[i3] - vertices[i2];
-            Eigen::Vector3d normal = v2.cross(v1);
-            normal.normalize();
-            fcl_plane_normals[i] = normal;
-            fcl_plane_dis[i] = vertices[i1].dot(normal);
           }
-          subshape = new fcl::Convexd(fcl_plane_normals, fcl_plane_dis, triangle_count, fcl_vertices, vertices.size(), polygons);
 
-          return subshape;
+          return FCLCollisionGeometryPtr(new fcl::Convexd(fcl_plane_normals, fcl_plane_dis, planes.size(), fcl_vertices, vertices.size(), polygons));
         }
         case CollisionObjectType::UseShapeType:
         {
@@ -180,8 +171,7 @@ fcl::CollisionGeometryd* createShapePrimitive(const shapes::ShapeConstPtr& geom,
             g->endModel();
           }
 
-          subshape = g;
-          return subshape;
+          return FCLCollisionGeometryPtr(g);
         }
         default:
         {
@@ -204,8 +194,7 @@ fcl::CollisionGeometryd* createShapePrimitive(const shapes::ShapeConstPtr& geom,
       {
         case CollisionObjectType::UseShapeType:
         {
-          subshape = new fcl::OcTreed(g->octree);
-          return subshape;
+          return FCLCollisionGeometryPtr(new fcl::OcTreed(g->octree));
         }
 
         default:
@@ -230,8 +219,8 @@ bool collisionCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, voi
   if (cdata->done)
     return true;
 
-  const FCLCollisionObjectWrapper* cd1 = static_cast<const FCLCollisionObjectWrapper*>(o1->collisionGeometry()->getUserData());
-  const FCLCollisionObjectWrapper* cd2 = static_cast<const FCLCollisionObjectWrapper*>(o2->collisionGeometry()->getUserData());
+  const FCLCollisionObjectWrapper* cd1 = static_cast<const FCLCollisionObjectWrapper*>(o1->getUserData());
+  const FCLCollisionObjectWrapper* cd2 = static_cast<const FCLCollisionObjectWrapper*>(o2->getUserData());
 
   bool needs_collision = (cd1->m_collisionFilterGroup & cd2->m_collisionFilterMask) &&
       (cd2->m_collisionFilterGroup & cd1->m_collisionFilterMask) &&
@@ -239,7 +228,7 @@ bool collisionCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, voi
       (std::find(cdata->req->link_names.begin(), cdata->req->link_names.end(), cd1->getName()) != cdata->req->link_names.end() ||
        std::find(cdata->req->link_names.begin(), cdata->req->link_names.end(), cd2->getName()) != cdata->req->link_names.end());
 
-  if (needs_collision)
+  if (!needs_collision)
     return false;
 
   fcl::CollisionResultd col_result;
@@ -277,8 +266,8 @@ bool distanceCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void
   if (cdata->done)
     return true;
 
-  const FCLCollisionObjectWrapper* cd1 = static_cast<const FCLCollisionObjectWrapper*>(o1->collisionGeometry()->getUserData());
-  const FCLCollisionObjectWrapper* cd2 = static_cast<const FCLCollisionObjectWrapper*>(o2->collisionGeometry()->getUserData());
+  const FCLCollisionObjectWrapper* cd1 = static_cast<const FCLCollisionObjectWrapper*>(o1->getUserData());
+  const FCLCollisionObjectWrapper* cd2 = static_cast<const FCLCollisionObjectWrapper*>(o2->getUserData());
 
   bool needs_collision = (cd1->m_collisionFilterGroup & cd2->m_collisionFilterMask) &&
       (cd2->m_collisionFilterGroup & cd1->m_collisionFilterMask) &&
@@ -286,7 +275,7 @@ bool distanceCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void
       (std::find(cdata->req->link_names.begin(), cdata->req->link_names.end(), cd1->getName()) != cdata->req->link_names.end() ||
        std::find(cdata->req->link_names.begin(), cdata->req->link_names.end(), cd2->getName()) != cdata->req->link_names.end());
 
-  if (needs_collision)
+  if (!needs_collision)
     return false;
 
   fcl::DistanceResultd fcl_result;
@@ -302,8 +291,8 @@ bool distanceCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void
     contact.nearest_points[1] = fcl_result.nearest_points[1];
     contact.type_id[0] = cd1->getTypeID();
     contact.type_id[1] = cd2->getTypeID();
-    contact.distance = 0;
-    contact.normal =(contact.nearest_points[1] - contact.nearest_points[0]).normalized();
+    contact.distance = fcl_result.min_distance;
+    contact.normal = (fcl_result.min_distance * (contact.nearest_points[1] - contact.nearest_points[0])).normalized();
 
     // TODO: There is an issue with FCL need to track down
     if (std::isnan(contact.nearest_points[0](0)))
@@ -325,6 +314,32 @@ FCLCollisionObjectWrapper::FCLCollisionObjectWrapper(const std::string& name,
                                                      const int& type_id,
                                                      const std::vector<shapes::ShapeConstPtr>& shapes,
                                                      const EigenSTL::vector_Affine3d& shape_poses,
+                                                     const CollisionObjectTypeVector& collision_object_types)
+  : name_(name)
+  , type_id_(type_id)
+  , shapes_(shapes)
+  , shape_poses_(shape_poses)
+  , collision_object_types_(collision_object_types)
+{
+  collision_geometries_.reserve(shapes_.size());
+  collision_objects_.reserve(shapes_.size());
+  for (std::size_t j = 0; j < shapes_.size(); ++j)
+  {
+    FCLCollisionGeometryPtr subshape = createShapePrimitive(shapes_[j], collision_object_types_[j]);
+    if (subshape != NULL)
+    {
+      collision_geometries_.push_back(subshape);
+      FCLCollisionObjectPtr co(new fcl::CollisionObjectd(subshape));
+      co->setUserData(this);
+      collision_objects_.push_back(co);
+    }
+  }
+}
+
+FCLCollisionObjectWrapper::FCLCollisionObjectWrapper(const std::string& name,
+                                                     const int& type_id,
+                                                     const std::vector<shapes::ShapeConstPtr>& shapes,
+                                                     const EigenSTL::vector_Affine3d& shape_poses,
                                                      const CollisionObjectTypeVector& collision_object_types,
                                                      const std::vector<FCLCollisionGeometryPtr>& collision_geometries,
                                                      const std::vector<FCLCollisionObjectPtr>& collision_objects)
@@ -339,6 +354,7 @@ FCLCollisionObjectWrapper::FCLCollisionObjectWrapper(const std::string& name,
   for (const auto& co : collision_objects)
   {
     FCLCollisionObjectPtr collObj(new fcl::CollisionObjectd(*co));
+    collObj->setUserData(this);
     collision_objects_.push_back(collObj);
   }
 }

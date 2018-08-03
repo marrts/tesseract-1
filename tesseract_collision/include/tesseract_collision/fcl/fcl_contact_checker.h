@@ -106,18 +106,16 @@ private:
   std::vector<std::string> active_objects_;            /**< A list of active objects to check for contact */
 
   void constructFCLObject(FCLManager& manager,
-                             std::vector<std::string>& active_objects,
-                             double contact_distance,
-                             const TransformMap& transforms,
-                             const std::vector<std::string>& active_links,
-                             bool continuous = false) const;
+                          std::vector<std::string>& active_objects,
+                          const TransformMap& transforms,
+                          const std::vector<std::string>& active_links,
+                          bool continuous = false) const;
 
   void constructFCLObject(FCLManager& manager,
-                             std::vector<std::string>& active_objects,
-                             double contact_distance,
-                             const TransformMap& transforms1,
-                             const TransformMap& transforms2,
-                             const std::vector<std::string>& active_links) const;
+                          std::vector<std::string>& active_objects,
+                          const TransformMap& transforms1,
+                          const TransformMap& transforms2,
+                          const std::vector<std::string>& active_links) const;
 };
 typedef std::shared_ptr<FCLContactChecker> FCLContactCheckerPtr;
 typedef std::shared_ptr<const FCLContactChecker> FCLContactCheckerConstPtr;
