@@ -1,6 +1,6 @@
 /**
- * @file bullet_env.cpp
- * @brief Tesseract ROS Bullet environment implementation.
+ * @file bullet_contact_checker.cpp
+ * @brief Tesseract ROS Bullet Contact Checker implementation.
  *
  * @author John Schulman
  * @author Levi Armstrong
@@ -57,7 +57,6 @@ BulletContactChecker::BulletContactChecker()
   name_ = "BULLET";
   coll_config_ = std::unique_ptr<btDefaultCollisionConfiguration>(new btDefaultCollisionConfiguration());
   dispatcher_ = std::unique_ptr<btCollisionDispatcher>(new btCollisionDispatcher(coll_config_.get()));
-  broadphase_ = std::unique_ptr<btDbvtBroadphase>(new btDbvtBroadphase());
 
   dispatcher_->registerCollisionCreateFunc(
       BOX_SHAPE_PROXYTYPE,
@@ -67,7 +66,7 @@ BulletContactChecker::BulletContactChecker()
   dispatcher_->setDispatcherFlags(dispatcher_->getDispatcherFlags() &
                                   ~btCollisionDispatcher::CD_USE_RELATIVE_CONTACT_BREAKING_THRESHOLD);
 
-  manager_ = BulletManagerPtr(new BulletManager(dispatcher_.get(), broadphase_.get(), coll_config_.get()));
+  manager_ = BulletManagerBasePtr(new BulletManager(dispatcher_.get()));
 }
 
 void BulletContactChecker::calcDistancesDiscrete(ContactResultMap& contacts)
@@ -97,7 +96,7 @@ void BulletContactChecker::calcDistancesDiscrete(const ContactRequest& req,
                                                  const TransformMap& transforms,
                                                  ContactResultMap& contacts) const
 {
-  BulletManager manager(dispatcher_.get(), broadphase_.get(), coll_config_.get());
+  BulletManager manager(dispatcher_.get());
   ContactDistanceData collisions(&req, &contacts);
 
   std::vector<std::string> active_objects;
@@ -123,7 +122,7 @@ void BulletContactChecker::calcDistancesContinuous(const ContactRequest& req,
                                                    const TransformMap& transforms2,
                                                    ContactResultMap& contacts) const
 {
-  BulletManager manager(dispatcher_.get(), broadphase_.get(), coll_config_.get());
+  BulletManager manager(dispatcher_.get());
   ContactDistanceData collisions(&req, &contacts);
 
   std::vector<std::string> active_objects;
@@ -252,7 +251,7 @@ void BulletContactChecker::setContactRequest(const ContactRequest& req)
 }
 
 const ContactRequest& BulletContactChecker::getContactRequest() const { return request_; }
-void BulletContactChecker::constructBulletObject(BulletManager& manager,
+void BulletContactChecker::constructBulletObject(BulletManagerBase& manager,
                                                  std::vector<std::string>& active_objects,
                                                  double contact_distance,
                                                  const TransformMap& transforms,
@@ -300,7 +299,7 @@ void BulletContactChecker::constructBulletObject(BulletManager& manager,
   }
 }
 
-void BulletContactChecker::constructBulletObject(BulletManager& manager,
+void BulletContactChecker::constructBulletObject(BulletManagerBase& manager,
                                                  std::vector<std::string>& active_objects,
                                                  double contact_distance,
                                                  const TransformMap& transforms1,

@@ -149,6 +149,16 @@ typedef std::shared_ptr<const CollisionObjectWrapper> COWConstPtr;
 typedef std::map<std::string, COWPtr> Link2Cow;
 typedef std::map<std::string, COWConstPtr> Link2ConstCow;
 
+inline bool needsCollisionCheck(const COW& cow1, const COW& cow2, const IsContactAllowedFn acm, bool verbose = false)
+{
+  return (cow2.m_collisionFilterGroup & cow1.m_collisionFilterMask) &&
+         (cow1.m_collisionFilterGroup & cow2.m_collisionFilterMask) &&
+         !isContactAllowed(cow1.getName(),
+                           cow2.getName(),
+                           acm,
+                           verbose);
+}
+
 struct CollisionCollector : public btCollisionWorld::ContactResultCallback
 {
   ContactDistanceData& m_collisions;
@@ -213,12 +223,10 @@ struct CollisionCollector : public btCollisionWorld::ContactResultCallback
   bool needsCollision(btBroadphaseProxy* proxy0) const
   {
     return !m_collisions.done &&
-           (proxy0->m_collisionFilterGroup & m_collisionFilterMask) &&
-           (m_collisionFilterGroup & proxy0->m_collisionFilterMask) &&
-           !isContactAllowed(m_cow.get()->getName(),
-                             static_cast<CollisionObjectWrapper*>(proxy0->m_clientObject)->getName(),
-                             m_collisions.req->isContactAllowed,
-                             m_verbose);
+        needsCollisionCheck(*m_cow,
+                            *(static_cast<CollisionObjectWrapper*>(proxy0->m_clientObject)),
+                            m_collisions.req->isContactAllowed,
+                            m_verbose);
   }
 };
 
@@ -281,12 +289,10 @@ struct SweepCollisionCollector : public btCollisionWorld::ClosestConvexResultCal
   bool needsCollision(btBroadphaseProxy* proxy0) const
   {
     return !m_collisions.done &&
-           (proxy0->m_collisionFilterGroup & m_collisionFilterMask) &&
-           (m_collisionFilterGroup & proxy0->m_collisionFilterMask) &&
-           !isContactAllowed(m_cow.get()->getName(),
-                             static_cast<CollisionObjectWrapper*>(proxy0->m_clientObject)->getName(),
-                             m_collisions.req->isContactAllowed,
-                             m_verbose);
+        needsCollisionCheck(*m_cow,
+                            *(static_cast<CollisionObjectWrapper*>(proxy0->m_clientObject)),
+                            m_collisions.req->isContactAllowed,
+                            m_verbose);
   }
 };
 
@@ -555,332 +561,68 @@ struct CastCollisionCollector : public btCollisionWorld::ContactResultCallback
   bool needsCollision(btBroadphaseProxy* proxy0) const
   {
     return !m_collisions.done &&
-           (proxy0->m_collisionFilterGroup & m_collisionFilterMask) &&
-           (m_collisionFilterGroup & proxy0->m_collisionFilterMask) &&
-           !isContactAllowed(m_cow.get()->getName(),
-                             static_cast<CollisionObjectWrapper*>(proxy0->m_clientObject)->getName(),
-                             m_collisions.req->isContactAllowed,
-                             m_verbose);
+        needsCollisionCheck(*m_cow,
+                            *(static_cast<CollisionObjectWrapper*>(proxy0->m_clientObject)),
+                            m_collisions.req->isContactAllowed,
+                            m_verbose);
   }
 };
 
-struct CastCollisionCollectorOriginal : public btCollisionWorld::ContactResultCallback
+/** @brief This is copied directly out of BulletWorld */
+struct btBridgedManifoldResult : public btManifoldResult
 {
-  ContactDistanceData& m_collisions;
-  const COWPtr m_cow;
-  double m_contact_distance;
 
-  bool m_verbose;
+  btCollisionWorld::ContactResultCallback&	m_resultCallback;
 
-  CastCollisionCollectorOriginal(ContactDistanceData& collisions,
-                                 const COWPtr cow,
-                                 double contact_distance,
-                                 bool verbose = false)
-    : m_collisions(collisions), m_cow(cow), m_contact_distance(contact_distance), m_verbose(verbose)
+  btBridgedManifoldResult( const btCollisionObjectWrapper* obj0Wrap,const btCollisionObjectWrapper* obj1Wrap,btCollisionWorld::ContactResultCallback& resultCallback )
+    :btManifoldResult(obj0Wrap,obj1Wrap),
+    m_resultCallback(resultCallback)
   {
-    m_collisionFilterGroup = cow->m_collisionFilterGroup;
-    m_collisionFilterMask = cow->m_collisionFilterMask;
   }
 
-  virtual btScalar addSingleResult(btManifoldPoint& cp,
-                                   const btCollisionObjectWrapper* colObj0Wrap,
-                                   int /*partId0*/,
-                                   int /*index0*/,
-                                   const btCollisionObjectWrapper* colObj1Wrap,
-                                   int /*partId1*/,
-                                   int /*index1*/)
+  virtual void addContactPoint(const btVector3& normalOnBInWorld,const btVector3& pointInWorld,btScalar depth)
   {
-    if (cp.m_distance1 > m_contact_distance)
-      return 0;
-
-    const CollisionObjectWrapper* cd0 = static_cast<const CollisionObjectWrapper*>(colObj0Wrap->getCollisionObject());
-    const CollisionObjectWrapper* cd1 = static_cast<const CollisionObjectWrapper*>(colObj1Wrap->getCollisionObject());
-
-    const std::pair<std::string, std::string>& pc = cd0->getName() < cd1->getName() ?
-                                                        std::make_pair(cd0->getName(), cd1->getName()) :
-                                                        std::make_pair(cd1->getName(), cd0->getName());
-
-    ContactResultMap::iterator it = m_collisions.res->find(pc);
-    bool found = it != m_collisions.res->end();
-
-    //    size_t l = 0;
-    //    if (found)
-    //    {
-    //      l = it->second.size();
-    //      if (m_collisions.req->type == DistanceRequestType::LIMITED && l >= m_collisions.req->max_contacts_per_body)
-    //          return 0;
-    //    }
-
-    ContactResult contact;
-    contact.link_names[0] = cd0->getName();
-    contact.link_names[1] = cd1->getName();
-    contact.nearest_points[0] = convertBtToEigen(cp.m_positionWorldOnA);
-    contact.nearest_points[1] = convertBtToEigen(cp.m_positionWorldOnB);
-    contact.type_id[0] = cd0->getTypeID();
-    contact.type_id[1] = cd1->getTypeID();
-    contact.distance = cp.m_distance1;
-    contact.normal = convertBtToEigen(-1 * cp.m_normalWorldOnB);
-
-    ContactResult* col = processResult(m_collisions, contact, pc, found);
-    if (!col)
+    bool isSwapped = m_manifoldPtr->getBody0() != m_body0Wrap->getCollisionObject();
+    btVector3 pointA = pointInWorld + normalOnBInWorld * depth;
+    btVector3 localA;
+    btVector3 localB;
+    if (isSwapped)
     {
-      return 0;
+      localA = m_body1Wrap->getCollisionObject()->getWorldTransform().invXform(pointA );
+      localB = m_body0Wrap->getCollisionObject()->getWorldTransform().invXform(pointInWorld);
+    } else
+    {
+      localA = m_body0Wrap->getCollisionObject()->getWorldTransform().invXform(pointA );
+      localB = m_body1Wrap->getCollisionObject()->getWorldTransform().invXform(pointInWorld);
     }
 
-    bool castShapeIsFirst = (colObj0Wrap->getCollisionObject() == m_cow.get());
-    btVector3 normalWorldFromCast = -(castShapeIsFirst ? 1 : -1) * cp.m_normalWorldOnB;
-    const CastHullShape* shape = dynamic_cast<const CastHullShape*>(
-        (castShapeIsFirst ? colObj0Wrap : colObj1Wrap)->getCollisionObject()->getCollisionShape());
-    assert(!!shape);
-    btTransform tfWorld0 = m_cow->getWorldTransform();
-    btTransform tfWorld1 = m_cow->getWorldTransform() * shape->m_t01;
-    btVector3 normalLocal0 = normalWorldFromCast * tfWorld0.getBasis();
-    btVector3 normalLocal1 = normalWorldFromCast * tfWorld1.getBasis();
+    btManifoldPoint newPt(localA,localB,normalOnBInWorld,depth);
+    newPt.m_positionWorldOnA = pointA;
+    newPt.m_positionWorldOnB = pointInWorld;
 
-    if (castShapeIsFirst)
+     //BP mod, store contact triangles.
+    if (isSwapped)
     {
-      std::swap(col->nearest_points[0], col->nearest_points[1]);
-      std::swap(col->link_names[0], col->link_names[1]);
-      std::swap(col->type_id[0], col->type_id[1]);
-      col->normal *= -1;
+      newPt.m_partId0 = m_partId1;
+      newPt.m_partId1 = m_partId0;
+      newPt.m_index0  = m_index1;
+      newPt.m_index1  = m_index0;
+    } else
+    {
+      newPt.m_partId0 = m_partId0;
+      newPt.m_partId1 = m_partId1;
+      newPt.m_index0  = m_index0;
+      newPt.m_index1  = m_index1;
     }
 
-    btVector3 ptLocal0;
-    float localsup0;
-    GetAverageSupport(shape->m_shape, normalLocal0, localsup0, ptLocal0);
-    btVector3 ptWorld0 = tfWorld0 * ptLocal0;
-    btVector3 ptLocal1;
-    float localsup1;
-    GetAverageSupport(shape->m_shape, normalLocal1, localsup1, ptLocal1);
-    btVector3 ptWorld1 = tfWorld1 * ptLocal1;
+    //experimental feature info, for per-triangle material etc.
+    const btCollisionObjectWrapper* obj0Wrap = isSwapped? m_body1Wrap : m_body0Wrap;
+    const btCollisionObjectWrapper* obj1Wrap = isSwapped? m_body0Wrap : m_body1Wrap;
+    m_resultCallback.addSingleResult(newPt,obj0Wrap,newPt.m_partId0,newPt.m_index0,obj1Wrap,newPt.m_partId1,newPt.m_index1);
 
-    float sup0 = normalWorldFromCast.dot(ptWorld0);
-    float sup1 = normalWorldFromCast.dot(ptWorld1);
-
-    // TODO: this section is potentially problematic. think hard about the math
-    if (sup0 - sup1 > BULLET_SUPPORT_FUNC_TOLERANCE)
-    {
-      col->cc_time = 0;
-      col->cc_type = ContinouseCollisionType::CCType_Time0;
-    }
-    else if (sup1 - sup0 > BULLET_SUPPORT_FUNC_TOLERANCE)
-    {
-      col->cc_time = 1;
-      col->cc_type = ContinouseCollisionType::CCType_Time1;
-    }
-    else
-    {
-      const btVector3& ptOnCast = castShapeIsFirst ? cp.m_positionWorldOnA : cp.m_positionWorldOnB;
-      float l0c = (ptOnCast - ptWorld0).length(), l1c = (ptOnCast - ptWorld1).length();
-
-      col->nearest_points[1] = convertBtToEigen(ptWorld0);
-      col->cc_nearest_points[0] = col->nearest_points[1];
-      col->cc_nearest_points[1] = convertBtToEigen(ptWorld1);
-      col->cc_type = ContinouseCollisionType::CCType_Between;
-
-      if (l0c + l1c < BULLET_LENGTH_TOLERANCE)
-      {
-        col->cc_time = .5;
-      }
-      else
-      {
-        col->cc_time = l0c / (l0c + l1c);
-      }
-    }
-
-    return 1;
   }
 
-  bool needsCollision(btBroadphaseProxy* proxy0) const
-  {
-    return !m_collisions.done &&
-           (proxy0->m_collisionFilterGroup & m_collisionFilterMask) &&
-           (m_collisionFilterGroup & proxy0->m_collisionFilterMask) &&
-           !isContactAllowed(m_cow.get()->getName(),
-                             static_cast<CollisionObjectWrapper*>(proxy0->m_clientObject)->getName(),
-                             m_collisions.req->isContactAllowed,
-                             m_verbose);
-  }
 };
-
-struct BulletManager
-{
-  BulletManager(btCollisionDispatcher* dispatcher, btBroadphaseInterface* broadphase, btCollisionConfiguration* coll_config)
-  {
-    m_world = std::unique_ptr<btCollisionWorld>(new btCollisionWorld(dispatcher, broadphase, coll_config));
-  }
-
-  COWPtr cloneCollisionObject(const std::string& name) const
-  {
-    auto it = m_link2cow.find(name);
-    if (it != m_link2cow.end())
-      return it->second->clone();
-
-    return nullptr;
-  }
-
-  const COWPtr& getCollisionObject(const std::string& name)
-  {
-    assert(m_link2cow.find(name) != m_link2cow.end());
-    return m_link2cow[name];
-  }
-
-  Link2Cow& getCollisionObjects() { return m_link2cow; }
-  void addCollisionObject(COWPtr& cow)
-  {
-    m_link2cow[cow->getName()] = cow;
-    m_world->addCollisionObject(cow.get(), cow->m_collisionFilterGroup, cow->m_collisionFilterMask);
-  }
-
-  bool removeCollisionObject(const std::string& name)
-  {
-    auto it = m_link2cow.find(name);
-    if (it != m_link2cow.end())
-    {
-      m_world->removeCollisionObject(it->second.get());
-      m_link2cow.erase(name);
-      return true;
-    }
-    return false;
-  }
-
-  bool enableCollisionObject(const std::string& name)
-  {
-    auto it = m_link2cow.find(name);
-    if (it != m_link2cow.end())
-    {
-      it->second->m_enabled = true;
-      return true;
-    }
-    return false;
-  }
-
-  bool disableCollisionObject(const std::string& name)
-  {
-    auto it = m_link2cow.find(name);
-    if (it != m_link2cow.end())
-    {
-      it->second->m_enabled = false;
-      return true;
-    }
-    return false;
-  }
-
-  bool setCollisionObjectsTransform(const std::string& name, const Eigen::Affine3d& pose)
-  {
-    // TODO: Find a way to remove this check. Need to store information in Tesseract EnvState indicating transforms with
-    // geometry
-    auto it = m_link2cow.find(name);
-    if (it != m_link2cow.end())
-    {
-      it->second->setWorldTransform(convertEigenToBt(pose));
-      m_world->updateSingleAabb(it->second.get());
-      return true;
-    }
-    return false;
-  }
-
-  void contactDiscreteTest(const COWPtr& cow, ContactDistanceData& collisions)
-  {
-    assert(cow->getBroadphaseHandle()->m_collisionFilterGroup == cow->m_collisionFilterGroup);
-    assert(cow->getBroadphaseHandle()->m_collisionFilterMask == cow->m_collisionFilterMask);
-    CollisionCollector cc(collisions, cow, cow->getContactProcessingThreshold());
-    m_world->contactTest(cow.get(), cc);
-  }
-
-  void contactCastTest(const COWPtr& cow, ContactDistanceData& collisions)
-  {
-    assert(cow->getBroadphaseHandle()->m_collisionFilterGroup == cow->m_collisionFilterGroup);
-    assert(cow->getBroadphaseHandle()->m_collisionFilterMask == cow->m_collisionFilterMask);
-    CastCollisionCollector cc(collisions, cow, cow->getContactProcessingThreshold());
-    m_world->contactTest(cow.get(), cc);
-  }
-
-  void contactCastTestOriginal(const std::string& link_name,
-                               const btTransform& tf1,
-                               const btTransform& tf2,
-                               ContactDistanceData& collisions)
-  {
-    COWPtr cow = m_link2cow[link_name];
-    convexCastTestHelper(cow, cow->getCollisionShape(), tf1, tf2, collisions);
-  }
-
-  void
-  convexSweepTest(const COWPtr& cow, const btTransform& tf1, const btTransform& tf2, ContactDistanceData& collisions)
-  {
-    SweepCollisionCollector cc(collisions, cow);
-    convexSweepTestHelper(cow->getCollisionShape(), tf1, tf2, cc);
-  }
-
-private:
-  std::unique_ptr<btCollisionWorld> m_world;
-  Link2Cow m_link2cow;
-
-  void convexCastTestHelper(COWPtr& cow,
-                            btCollisionShape* shape,
-                            const btTransform& tf0,
-                            const btTransform& tf1,
-                            ContactDistanceData& collisions)
-  {
-    if (btBroadphaseProxy::isConvex(shape->getShapeType()))
-    {
-      btConvexShape* convex = dynamic_cast<btConvexShape*>(shape);
-
-      CastHullShape* shape = new CastHullShape(convex, tf0.inverseTimes(tf1));
-      COWPtr obj = cow->clone();
-      obj->setCollisionShape(shape);
-      obj->setWorldTransform(tf0);
-
-      CastCollisionCollectorOriginal cc(collisions, obj, cow->getContactProcessingThreshold());
-      m_world->contactTest(obj.get(), cc);
-
-      delete shape;
-    }
-    else if (btCompoundShape* compound = dynamic_cast<btCompoundShape*>(shape))
-    {
-      for (int i = 0; i < compound->getNumChildShapes(); ++i)
-      {
-        convexCastTestHelper(cow,
-                             compound->getChildShape(i),
-                             tf0 * compound->getChildTransform(i),
-                             tf1 * compound->getChildTransform(i),
-                             collisions);
-      }
-    }
-    else
-    {
-      throw std::runtime_error("I can only continuous collision check convex shapes and compound shapes made of convex "
-                               "shapes");
-    }
-  }
-
-  void convexSweepTestHelper(const btCollisionShape* shape,
-                             const btTransform& tf1,
-                             const btTransform& tf2,
-                             btCollisionWorld::ConvexResultCallback& cc)
-  {
-    if (btBroadphaseProxy::isConvex(shape->getShapeType()))
-    {
-      const btConvexShape* convex = static_cast<const btConvexShape*>(shape);
-      m_world->convexSweepTest(convex, tf1, tf2, cc, 0);
-    }
-    else if (btBroadphaseProxy::isCompound(shape->getShapeType()))
-    {
-      const btCompoundShape* compound = static_cast<const btCompoundShape*>(shape);
-      for (int i = 0; i < compound->getNumChildShapes(); ++i)
-      {
-        convexSweepTestHelper(
-            compound->getChildShape(i), tf1 * compound->getChildTransform(i), tf1 * compound->getChildTransform(i), cc);
-      }
-    }
-    else
-    {
-      throw std::runtime_error("I can only continuous collision check convex shapes and compound shapes made of convex "
-                               "shapes");
-    }
-  }
-};
-typedef std::shared_ptr<BulletManager> BulletManagerPtr;
 
 btCollisionShape* createShapePrimitive(const shapes::ShapeConstPtr& geom,
                                        const CollisionObjectType& collision_object_type,
