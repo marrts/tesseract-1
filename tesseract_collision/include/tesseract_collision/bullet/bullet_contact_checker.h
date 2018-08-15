@@ -44,7 +44,7 @@
 #define TESSERACT_COLLISION_BULLET_CONTACT_CHECKER_H
 
 #include <tesseract_collision/contact_checker_base.h>
-#include <tesseract_collision/bullet/bullet_manager.h>
+#include <tesseract_collision/bullet/bullet_discrete_managers.h>
 #include <memory>
 #include <Eigen/Core>
 
@@ -78,6 +78,8 @@ public:
                                 const TransformMap& transforms2,
                                 ContactResultMap& contacts) const override;
 
+  BulletDiscreteBVHManagerPtr getDiscreteManager(const ContactRequest& req, const TransformMap& transforms);
+
   bool addObject(const std::string& name,
                  const int& mask_id,
                  const std::vector<shapes::ShapeConstPtr>& shapes,
@@ -101,28 +103,30 @@ public:
 
   const ContactRequest& getContactRequest() const override;
 
+  DiscreteContactManagerBasePtr createDiscreteManager(const ContactRequest& req, const TransformMap& transforms) const override;
+
 private:
   std::string name_;                                      /**< Name of the environment (may be empty) */
-  BulletManagerBasePtr manager_;                          /**< Contains the collision objects */
-  ContactRequest request_;                                /**< Active request to be used for methods that don't require a request */
-  std::vector<std::string> active_objects_;               /**< A list of active objects ot check for contact */
+  BulletDiscreteBVHManagerPtr manager_;                   /**< Contains the collision objects */
+//  ContactRequest request_;                              /**< Active request to be used for methods that don't require a request */
+//  std::vector<std::string> active_objects_;             /**< A list of active objects ot check for contact */
   std::unique_ptr<btCollisionConfiguration> coll_config_; /**< The bullet collision configuration */
   std::unique_ptr<btCollisionDispatcher> dispatcher_;     /**< The bullet collision dispatcher */
 
 
-  void constructBulletObject(BulletManagerBase& manager,
-                             std::vector<std::string>& active_objects,
-                             double contact_distance,
-                             const TransformMap& transforms,
-                             const std::vector<std::string>& active_links,
-                             bool continuous = false) const;
+//  void constructBulletObject(BulletDiscreteManagerBase& manager,
+//                             std::vector<std::string>& active_objects,
+//                             double contact_distance,
+//                             const TransformMap& transforms,
+//                             const std::vector<std::string>& active_links,
+//                             bool continuous = false) const;
 
-  void constructBulletObject(BulletManagerBase &manager,
-                             std::vector<std::string>& active_objects,
-                             double contact_distance,
-                             const TransformMap& transforms1,
-                             const TransformMap& transforms2,
-                             const std::vector<std::string>& active_links) const;
+//  void constructBulletObject(BulletCastManagerBase &manager,
+//                             std::vector<std::string>& active_objects,
+//                             double contact_distance,
+//                             const TransformMap& transforms1,
+//                             const TransformMap& transforms2,
+//                             const std::vector<std::string>& active_links) const;
 };
 typedef std::shared_ptr<BulletContactChecker> BulletContactCheckerPtr;
 typedef std::shared_ptr<const BulletContactChecker> BulletContactCheckerConstPtr;

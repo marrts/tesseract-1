@@ -41,6 +41,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 #include "tesseract_collision/bullet/bullet_contact_checker.h"
+#include <tesseract_collision/bullet/bullet_cast_managers.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <geometric_shapes/shape_operations.h>
 #include <iostream>
@@ -66,55 +67,25 @@ BulletContactChecker::BulletContactChecker()
   dispatcher_->setDispatcherFlags(dispatcher_->getDispatcherFlags() &
                                   ~btCollisionDispatcher::CD_USE_RELATIVE_CONTACT_BREAKING_THRESHOLD);
 
-  manager_ = BulletManagerBasePtr(new BulletManager(dispatcher_.get()));
+  manager_.reset(new BulletDiscreteBVHManager(dispatcher_.get()));
 }
 
 void BulletContactChecker::calcDistancesDiscrete(ContactResultMap& contacts)
 {
-  ContactDistanceData collisions(&request_, &contacts);
-
-  for (auto& obj : active_objects_)
-  {
-    const COWPtr& cow = manager_->getCollisionObject(obj);
-    assert(cow);
-
-    manager_->contactDiscreteTest(cow, collisions);
-
-    if (collisions.done)
-      break;
-
-    disableObject(cow->getName());
-  }
-
-  for (auto& obj : active_objects_)
-  {
-    enableObject(obj);
-  }
+  ContactDistanceData collisions(&manager_->getContactRequest(), &contacts);
+  manager_->contactTest(collisions);
 }
 
 void BulletContactChecker::calcDistancesDiscrete(const ContactRequest& req,
                                                  const TransformMap& transforms,
                                                  ContactResultMap& contacts) const
 {
-  BulletManager manager(dispatcher_.get());
+  BulletDiscreteSimpleManager manager(dispatcher_.get());
   ContactDistanceData collisions(&req, &contacts);
 
-  std::vector<std::string> active_objects;
+  constructDiscreteContactManager<BulletDiscreteSimpleManager>(manager, manager_->getCollisionObjects(), req, transforms);
 
-  constructBulletObject(manager, active_objects, req.contact_distance, transforms, req.link_names);
-
-  for (auto& obj : active_objects)
-  {
-    const COWPtr& cow = manager.getCollisionObject(obj);
-    assert(cow);
-
-    manager.contactDiscreteTest(cow, collisions);
-
-    if (collisions.done)
-      break;
-
-    manager.removeCollisionObject(cow->getName());
-  }
+  manager.contactTest(collisions);
 }
 
 void BulletContactChecker::calcDistancesContinuous(const ContactRequest& req,
@@ -122,25 +93,13 @@ void BulletContactChecker::calcDistancesContinuous(const ContactRequest& req,
                                                    const TransformMap& transforms2,
                                                    ContactResultMap& contacts) const
 {
-  BulletManager manager(dispatcher_.get());
+//  BulletManagerSimple manager(dispatcher_.get());
+  BulletCastSimpleManager manager(dispatcher_.get());
   ContactDistanceData collisions(&req, &contacts);
 
-  std::vector<std::string> active_objects;
+  constructCastContactManager<BulletCastSimpleManager>(manager, manager_->getCollisionObjects(), req, transforms1, transforms2);
 
-  constructBulletObject(manager, active_objects, req.contact_distance, transforms1, transforms2, req.link_names);
-
-  for (auto& obj : active_objects)
-  {
-    const COWPtr& cow = manager.getCollisionObject(obj);
-    assert(cow);
-
-    manager.contactCastTest(cow, collisions);
-
-    if (collisions.done)
-      break;
-
-    manager.removeCollisionObject(cow->getName());
-  }
+  manager.contactTest(collisions);
 }
 
 void BulletContactChecker::calcCollisionsDiscrete(ContactResultMap& contacts) { calcDistancesDiscrete(contacts); }
@@ -166,26 +125,14 @@ bool BulletContactChecker::addObject(const std::string& name,
                                      const CollisionObjectTypeVector& collision_object_types,
                                      bool enabled)
 {
-  // dont add object that does not have geometry
-  if (shapes.empty() || shape_poses.empty())
+  COWPtr new_cow = createCollisionObject(name, mask_id, shapes, shape_poses, collision_object_types, enabled);
+  if (new_cow != nullptr)
   {
-    ROS_DEBUG("ignoring link %s", name.c_str());
-    return false;
-  }
-
-  COWPtr new_cow(new COW(name, mask_id, shapes, shape_poses, collision_object_types));
-
-  if (new_cow)
-  {
-    new_cow->m_enabled = enabled;
-    setContactDistance(new_cow, BULLET_DEFAULT_CONTACT_DISTANCE);
     manager_->addCollisionObject(new_cow);
-    ROS_DEBUG("Added collision object for link %s", new_cow->getName().c_str());
     return true;
   }
   else
   {
-    ROS_DEBUG("ignoring link %s", name.c_str());
     return false;
   }
 }
@@ -201,213 +148,186 @@ void BulletContactChecker::setObjectsTransform(const std::string& name, const Ei
 void BulletContactChecker::setObjectsTransform(const std::vector<std::string>& names,
                                                const EigenSTL::vector_Affine3d& poses)
 {
-  assert(names.size() == poses.size());
-  for (auto i = 0u; i < names.size(); ++i)
-    setObjectsTransform(names[i], poses[i]);
+  manager_->setCollisionObjectsTransform(names, poses);
 }
 
 void BulletContactChecker::setObjectsTransform(const TransformMap& transforms)
 {
-  for (const auto& transform : transforms)
-    setObjectsTransform(transform.first, transform.second);
+  manager_->setCollisionObjectsTransform(transforms);
 }
 
 void BulletContactChecker::setContactRequest(const ContactRequest& req)
 {
-  request_ = req;
-  active_objects_.clear();
-
-  for (auto& element : manager_->getCollisionObjects())
-  {
-    // For descrete checks we can check static to kinematic and kinematic to
-    // kinematic
-    element.second->m_collisionFilterGroup = btBroadphaseProxy::KinematicFilter;
-    if (!request_.link_names.empty())
-    {
-      bool check = (std::find_if(req.link_names.begin(), req.link_names.end(), [&](std::string link) {
-                      return link == element.first;
-                    }) == req.link_names.end());
-      if (check)
-      {
-        element.second->m_collisionFilterGroup = btBroadphaseProxy::StaticFilter;
-      }
-    }
-
-    if (element.second->m_collisionFilterGroup == btBroadphaseProxy::StaticFilter)
-    {
-      element.second->m_collisionFilterMask = btBroadphaseProxy::KinematicFilter;
-    }
-    else
-    {
-      active_objects_.push_back(element.first);
-      element.second->m_collisionFilterMask = btBroadphaseProxy::StaticFilter | btBroadphaseProxy::KinematicFilter;
-    }
-
-    element.second->getBroadphaseHandle()->m_collisionFilterGroup = element.second->m_collisionFilterGroup;
-    element.second->getBroadphaseHandle()->m_collisionFilterMask = element.second->m_collisionFilterMask;
-
-    setContactDistance(element.second, request_.contact_distance);
-  }
+  manager_->setContactRequest(req);
 }
 
-const ContactRequest& BulletContactChecker::getContactRequest() const { return request_; }
-void BulletContactChecker::constructBulletObject(BulletManagerBase& manager,
-                                                 std::vector<std::string>& active_objects,
-                                                 double contact_distance,
-                                                 const TransformMap& transforms,
-                                                 const std::vector<std::string>& active_links,
-                                                 bool continuous) const
+const ContactRequest& BulletContactChecker::getContactRequest() const { return manager_->getContactRequest(); }
+
+DiscreteContactManagerBasePtr BulletContactChecker::createDiscreteManager(const ContactRequest& req, const TransformMap& transforms) const
 {
-  for (const auto& transform : transforms)
-  {
-    COWPtr new_cow = manager_->cloneCollisionObject(transform.first);
-    if (!new_cow || !new_cow->m_enabled)
-      continue;
+  BulletDiscreteBVHManagerPtr manager(new BulletDiscreteBVHManager(dispatcher_.get()));
 
-    assert(new_cow->getCollisionShape());
+  constructDiscreteContactManager(*manager, manager_->getCollisionObjects(), req, transforms);
 
-    new_cow->setWorldTransform(convertEigenToBt(transform.second));
-
-    // For descrete checks we can check static to kinematic and kinematic to
-    // kinematic
-    new_cow->m_collisionFilterGroup = btBroadphaseProxy::KinematicFilter;
-    if (!active_links.empty())
-    {
-      bool check = (std::find_if(active_links.begin(), active_links.end(), [&](std::string link) {
-                      return link == transform.first;
-                    }) == active_links.end());
-      if (check)
-      {
-        new_cow->m_collisionFilterGroup = btBroadphaseProxy::StaticFilter;
-      }
-    }
-
-    if (new_cow->m_collisionFilterGroup == btBroadphaseProxy::StaticFilter)
-    {
-      new_cow->m_collisionFilterMask = btBroadphaseProxy::KinematicFilter;
-    }
-    else
-    {
-      active_objects.push_back(transform.first);
-      (continuous) ?
-          (new_cow->m_collisionFilterMask = btBroadphaseProxy::StaticFilter) :
-          (new_cow->m_collisionFilterMask = btBroadphaseProxy::StaticFilter | btBroadphaseProxy::KinematicFilter);
-    }
-
-    setContactDistance(new_cow, contact_distance);
-    manager.addCollisionObject(new_cow);
-  }
+  return manager;
 }
+//void BulletContactChecker::constructBulletObject(BulletDiscreteManagerBase& manager,
+//                                                 std::vector<std::string>& active_objects,
+//                                                 double contact_distance,
+//                                                 const TransformMap& transforms,
+//                                                 const std::vector<std::string>& active_links,
+//                                                 bool continuous) const
+//{
+//  for (const auto& transform : transforms)
+//  {
+//    COWPtr new_cow = manager_->cloneCollisionObject(transform.first);
+//    if (!new_cow || !new_cow->m_enabled)
+//      continue;
 
-void BulletContactChecker::constructBulletObject(BulletManagerBase& manager,
-                                                 std::vector<std::string>& active_objects,
-                                                 double contact_distance,
-                                                 const TransformMap& transforms1,
-                                                 const TransformMap& transforms2,
-                                                 const std::vector<std::string>& active_links) const
-{
-  assert(transforms1.size() == transforms2.size());
+//    assert(new_cow->getCollisionShape());
 
-  auto it1 = transforms1.begin();
-  auto it2 = transforms2.begin();
-  while (it1 != transforms1.end())
-  {
-    COWPtr new_cow = manager_->cloneCollisionObject(it1->first);
-    if (!new_cow || !new_cow->m_enabled)
-    {
-      std::advance(it1, 1);
-      std::advance(it2, 1);
-      continue;
-    }
+//    new_cow->setWorldTransform(convertEigenToBt(transform.second));
 
-    assert(new_cow->getCollisionShape());
-    assert(transforms2.find(it1->first) != transforms2.end());
+//    // For descrete checks we can check static to kinematic and kinematic to
+//    // kinematic
+//    new_cow->m_collisionFilterGroup = btBroadphaseProxy::KinematicFilter;
+//    if (!active_links.empty())
+//    {
+//      bool check = (std::find_if(active_links.begin(), active_links.end(), [&](std::string link) {
+//                      return link == transform.first;
+//                    }) == active_links.end());
+//      if (check)
+//      {
+//        new_cow->m_collisionFilterGroup = btBroadphaseProxy::StaticFilter;
+//      }
+//    }
 
-    new_cow->m_collisionFilterGroup = btBroadphaseProxy::KinematicFilter;
-    if (!active_links.empty())
-    {
-      bool check = (std::find_if(active_links.begin(), active_links.end(), [&](std::string link) {
-                      return link == it1->first;
-                    }) == active_links.end());
-      if (check)
-      {
-        new_cow->m_collisionFilterGroup = btBroadphaseProxy::StaticFilter;
-      }
-    }
+//    if (new_cow->m_collisionFilterGroup == btBroadphaseProxy::StaticFilter)
+//    {
+//      new_cow->m_collisionFilterMask = btBroadphaseProxy::KinematicFilter;
+//    }
+//    else
+//    {
+//      active_objects.push_back(transform.first);
+//      (continuous) ?
+//          (new_cow->m_collisionFilterMask = btBroadphaseProxy::StaticFilter) :
+//          (new_cow->m_collisionFilterMask = btBroadphaseProxy::StaticFilter | btBroadphaseProxy::KinematicFilter);
+//    }
 
-    if (new_cow->m_collisionFilterGroup == btBroadphaseProxy::StaticFilter)
-    {
-      new_cow->setWorldTransform(convertEigenToBt(it1->second));
-      new_cow->m_collisionFilterMask = btBroadphaseProxy::KinematicFilter;
-    }
-    else
-    {
-      active_objects.push_back(it1->first);
+//    new_cow->setContactProcessingThreshold(contact_distance);
+//    manager.addCollisionObject(new_cow);
+//  }
+//}
 
-      if (btBroadphaseProxy::isConvex(new_cow->getCollisionShape()->getShapeType()))
-      {
-        btConvexShape* convex = static_cast<btConvexShape*>(new_cow->getCollisionShape());
-        assert(convex != NULL);
+//void BulletContactChecker::constructBulletObject(BulletCastManagerBase& manager,
+//                                                 std::vector<std::string>& active_objects,
+//                                                 double contact_distance,
+//                                                 const TransformMap& transforms1,
+//                                                 const TransformMap& transforms2,
+//                                                 const std::vector<std::string>& active_links) const
+//{
+//  assert(transforms1.size() == transforms2.size());
 
-        btTransform tf1 = convertEigenToBt(it1->second);
-        btTransform tf2 = convertEigenToBt(it2->second);
+//  auto it1 = transforms1.begin();
+//  auto it2 = transforms2.begin();
+//  while (it1 != transforms1.end())
+//  {
+//    COWPtr new_cow = manager_->cloneCollisionObject(it1->first);
+//    if (!new_cow || !new_cow->m_enabled)
+//    {
+//      std::advance(it1, 1);
+//      std::advance(it2, 1);
+//      continue;
+//    }
 
-        CastHullShape* shape = new CastHullShape(convex, tf1.inverseTimes(tf2));
-        assert(shape != NULL);
+//    assert(new_cow->getCollisionShape());
+//    assert(transforms2.find(it1->first) != transforms2.end());
 
-        new_cow->manage(shape);
-        new_cow->setCollisionShape(shape);
-        new_cow->setWorldTransform(tf1);
-      }
-      else if (btBroadphaseProxy::isCompound(new_cow->getCollisionShape()->getShapeType()))
-      {
-        btCompoundShape* compound = static_cast<btCompoundShape*>(new_cow->getCollisionShape());
-        const Eigen::Affine3d& tf1 = it1->second;
-        const Eigen::Affine3d& tf2 = it2->second;
+//    new_cow->m_collisionFilterGroup = btBroadphaseProxy::KinematicFilter;
+//    if (!active_links.empty())
+//    {
+//      bool check = (std::find_if(active_links.begin(), active_links.end(), [&](std::string link) {
+//                      return link == it1->first;
+//                    }) == active_links.end());
+//      if (check)
+//      {
+//        new_cow->m_collisionFilterGroup = btBroadphaseProxy::StaticFilter;
+//      }
+//    }
 
-        btCompoundShape* new_compound = new btCompoundShape(/*dynamicAABBtree=*/false);
+//    if (new_cow->m_collisionFilterGroup == btBroadphaseProxy::StaticFilter)
+//    {
+//      new_cow->setWorldTransform(convertEigenToBt(it1->second));
+//      new_cow->m_collisionFilterMask = btBroadphaseProxy::KinematicFilter;
+//    }
+//    else
+//    {
+//      active_objects.push_back(it1->first);
 
-        for (int i = 0; i < compound->getNumChildShapes(); ++i)
-        {
-          btConvexShape* convex = static_cast<btConvexShape*>(compound->getChildShape(i));
-          assert(convex != NULL);
+//      if (btBroadphaseProxy::isConvex(new_cow->getCollisionShape()->getShapeType()))
+//      {
+//        btConvexShape* convex = static_cast<btConvexShape*>(new_cow->getCollisionShape());
+//        assert(convex != NULL);
 
-          btTransform geomTrans = compound->getChildTransform(i);
-          btTransform child_tf1 = convertEigenToBt(tf1) * geomTrans;
-          btTransform child_tf2 = convertEigenToBt(tf2) * geomTrans;
+//        btTransform tf1 = convertEigenToBt(it1->second);
+//        btTransform tf2 = convertEigenToBt(it2->second);
 
-          btCollisionShape* subshape = new CastHullShape(convex, child_tf1.inverseTimes(child_tf2));
-          assert(subshape != NULL);
+//        CastHullShape* shape = new CastHullShape(convex, tf1.inverseTimes(tf2));
+//        assert(shape != NULL);
 
-          if (subshape != NULL)
-          {
-            new_cow->manage(subshape);
-            subshape->setMargin(BULLET_MARGIN);
-            new_compound->addChildShape(geomTrans, subshape);
-          }
-        }
+//        new_cow->manage(shape);
+//        new_cow->setCollisionShape(shape);
+//        new_cow->setWorldTransform(tf1);
+//      }
+//      else if (btBroadphaseProxy::isCompound(new_cow->getCollisionShape()->getShapeType()))
+//      {
+//        btCompoundShape* compound = static_cast<btCompoundShape*>(new_cow->getCollisionShape());
+//        const Eigen::Affine3d& tf1 = it1->second;
+//        const Eigen::Affine3d& tf2 = it2->second;
 
-        new_compound->setMargin(BULLET_MARGIN);  // margin: compound. seems to
-                                                 // have no effect when positive
-                                                 // but has an effect when
-                                                 // negative
-        new_cow->manage(new_compound);
-        new_cow->setCollisionShape(new_compound);
-        new_cow->setWorldTransform(convertEigenToBt(tf1));
-      }
-      else
-      {
-        ROS_ERROR("I can only continuous collision check convex shapes and "
-                  "compound shapes made of convex shapes");
-      }
+//        btCompoundShape* new_compound = new btCompoundShape(/*dynamicAABBtree=*/false);
 
-      new_cow->m_collisionFilterMask = btBroadphaseProxy::StaticFilter;
-    }
+//        for (int i = 0; i < compound->getNumChildShapes(); ++i)
+//        {
+//          btConvexShape* convex = static_cast<btConvexShape*>(compound->getChildShape(i));
+//          assert(convex != NULL);
 
-    setContactDistance(new_cow, contact_distance);
-    manager.addCollisionObject(new_cow);
-    std::advance(it1, 1);
-    std::advance(it2, 1);
-  }
-}
+//          btTransform geomTrans = compound->getChildTransform(i);
+//          btTransform child_tf1 = convertEigenToBt(tf1) * geomTrans;
+//          btTransform child_tf2 = convertEigenToBt(tf2) * geomTrans;
+
+//          btCollisionShape* subshape = new CastHullShape(convex, child_tf1.inverseTimes(child_tf2));
+//          assert(subshape != NULL);
+
+//          if (subshape != NULL)
+//          {
+//            new_cow->manage(subshape);
+//            subshape->setMargin(BULLET_MARGIN);
+//            new_compound->addChildShape(geomTrans, subshape);
+//          }
+//        }
+
+//        new_compound->setMargin(BULLET_MARGIN);  // margin: compound. seems to
+//                                                 // have no effect when positive
+//                                                 // but has an effect when
+//                                                 // negative
+//        new_cow->manage(new_compound);
+//        new_cow->setCollisionShape(new_compound);
+//        new_cow->setWorldTransform(convertEigenToBt(tf1));
+//      }
+//      else
+//      {
+//        ROS_ERROR("I can only continuous collision check convex shapes and "
+//                  "compound shapes made of convex shapes");
+//      }
+
+//      new_cow->m_collisionFilterMask = btBroadphaseProxy::StaticFilter;
+//    }
+
+//    new_cow->setContactProcessingThreshold(contact_distance);
+//    manager.addCollisionObject(new_cow);
+//    std::advance(it1, 1);
+//    std::advance(it2, 1);
+//  }
+//}
 }

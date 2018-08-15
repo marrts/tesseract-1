@@ -302,4 +302,5 @@ CollisionObjectWrapper::CollisionObjectWrapper(const std::string& name,
   , m_data(data)
 {
 }
+
 }

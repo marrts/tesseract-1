@@ -1,7 +1,34 @@
+/**
+ * @file contact_checker_base.h
+ * @brief This is the contact_checker base class
+ *
+ * @author Levi Armstrong
+ * @date Dec 18, 2017
+ * @version TODO
+ * @bug No known bugs
+ *
+ * @copyright Copyright (c) 2017, Southwest Research Institute
+ *
+ * @par License
+ * Software License Agreement (Apache License)
+ * @par
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * @par
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #ifndef TESSERACT_COLLISION_CONTACT_CHECKER_BASE_H
 #define TESSERACT_COLLISION_CONTACT_CHECKER_BASE_H
 
 #include <tesseract_core/basic_types.h>
+#include <tesseract_collision/discrete_contact_manager_base.h>
+#include <tesseract_collision/continuous_contact_manager_base.h>
 #include <geometric_shapes/shapes.h>
 #include <eigen_stl_containers/eigen_stl_containers.h>
 
@@ -138,6 +165,16 @@ public:
    * @return Active contact request information
    */
   virtual const ContactRequest& getContactRequest() const = 0;
+
+  /**
+   * @brief Create a standalone discrete contact manager decoupled from parent
+   * @param req Contact request information
+   * @param transforms
+   * @return
+   */
+  virtual DiscreteContactManagerBasePtr createDiscreteManager(const ContactRequest& req, const TransformMap& transforms) const = 0;
+
+//  ContinuousContactManagerBasePtr createContinuousManager(const ContactRequest& req, const TransformMap& transforms) const;
 };
 typedef std::shared_ptr<ContactCheckerBase> ContactCheckerBasePtr;
 typedef std::shared_ptr<const ContactCheckerBase> ContactCheckerBaseConstPtr;
