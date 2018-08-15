@@ -69,14 +69,19 @@ void runTest(tesseract::ContactCheckerBase& checker)
 
   EXPECT_TRUE(!result_vector.empty());
   EXPECT_NEAR(result_vector[0].distance, -0.55, 0.0001);
-  EXPECT_NEAR(result_vector[0].nearest_points[0][0], 0.5, 0.001);
-  EXPECT_NEAR(result_vector[0].nearest_points[0][1], 0.0, 0.001);
-  EXPECT_NEAR(result_vector[0].nearest_points[1][0], -0.05, 0.001);
-  EXPECT_NEAR(result_vector[0].nearest_points[1][1], 0.0, 0.001);
   EXPECT_NEAR(result_vector[0].nearest_points[0][2], result_vector[0].nearest_points[1][2], 0.001);
-  EXPECT_NEAR(result_vector[0].normal[0], 1.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[1], 0.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[2], 0.0, 0.001);
+
+  std::vector<int> idx = {0, 1, 1};
+  if (result_vector[0].link_names[0] != "box_link")
+    idx = {1, 0, -1};
+
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[0]][0], 0.5, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[0]][1], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[1]][0], -0.05, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[1]][1], 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[0], idx[2] * 1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[1], idx[2] * 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[2], idx[2] * 0.0, 0.001);
 
 
   // Test object is out side the contact distance
@@ -99,25 +104,30 @@ void runTest(tesseract::ContactCheckerBase& checker)
 
   EXPECT_TRUE(!result_vector.empty());
   EXPECT_NEAR(result_vector[0].distance, 0.25, 0.0001);
-  EXPECT_NEAR(result_vector[0].nearest_points[0][0], 0.5, 0.001);
-  EXPECT_NEAR(result_vector[0].nearest_points[0][1], 0.0, 0.003);
-  EXPECT_NEAR(result_vector[0].nearest_points[1][0], 0.75, 0.001);
-  EXPECT_NEAR(result_vector[0].nearest_points[1][1], 0.0, 0.003);
   EXPECT_NEAR(result_vector[0].nearest_points[0][2], result_vector[0].nearest_points[1][2], 0.001);
-  EXPECT_NEAR(result_vector[0].normal[0], 1.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[1], 0.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[2], 0.0, 0.001);
-}
 
-TEST(TesseractCollisionUnit, FCLCollisionBoxCylinderUnit)
-{
-  tesseract::FCLContactChecker checker;
-  runTest(checker);
+  idx = {0, 1, 1};
+  if (result_vector[0].link_names[0] != "box_link")
+    idx = {1, 0, -1};
+
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[0]][0], 0.5, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[0]][1], 0.0, 0.003);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[1]][0], 0.75, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[1]][1], 0.0, 0.003);
+  EXPECT_NEAR(result_vector[0].normal[0], idx[2] * 1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[1], idx[2] * 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[2], idx[2] * 0.0, 0.001);
 }
 
 TEST(TesseractCollisionUnit, BulletCollisionBoxCylinderUnit)
 {
   tesseract::BulletContactChecker checker;
+  runTest(checker);
+}
+
+TEST(TesseractCollisionUnit, FCLCollisionBoxCylinderUnit)
+{
+  tesseract::FCLContactChecker checker;
   runTest(checker);
 }
 

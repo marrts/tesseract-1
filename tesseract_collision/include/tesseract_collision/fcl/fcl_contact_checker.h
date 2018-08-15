@@ -43,6 +43,7 @@
 #define TESSERACT_COLLISION_FCL_CONTACT_CHECKER_H
 
 #include <tesseract_collision/contact_checker_base.h>
+#include <tesseract_collision/discrete_contact_manager_base.h>
 #include <tesseract_collision/fcl/fcl_utils.h>
 
 namespace tesseract
@@ -97,6 +98,8 @@ public:
   void setContactRequest(const ContactRequest& req) override;
 
   const ContactRequest& getContactRequest() const override;
+
+  DiscreteContactManagerBasePtr createDiscreteManager(const ContactRequest& req, const TransformMap& transforms) const override;
 
 private:
   //  FCLManager manager_;

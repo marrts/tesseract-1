@@ -79,14 +79,18 @@ void runTest(tesseract::ContactCheckerBase& checker, bool use_convex_mesh = fals
 
   EXPECT_TRUE(!result_vector.empty());
   EXPECT_NEAR(result_vector[0].distance, -1.30, 0.001);
-  EXPECT_NEAR(result_vector[0].nearest_points[0][0], -0.3, 0.001);
   EXPECT_NEAR(result_vector[0].nearest_points[0][1], result_vector[0].nearest_points[1][1], 0.001);
   EXPECT_NEAR(result_vector[0].nearest_points[0][2], result_vector[0].nearest_points[1][2], 0.001);
-  EXPECT_NEAR(result_vector[0].nearest_points[1][0], 1.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[0], -1.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[1], 0.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[2], 0.0, 0.001);
 
+  std::vector<int> idx = {0, 1, 1};
+  if (result_vector[0].link_names[0] != "box_link")
+    idx = {1, 0, -1};
+
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[0]][0], -0.3, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[1]][0], 1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[0], idx[2] * -1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[1], idx[2] * 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[2], idx[2] * 0.0, 0.001);
 
   // Test object is out side the contact distance
   location["box_link"].translation() = Eigen::Vector3d(1.6, 0, 0);
@@ -108,13 +112,25 @@ void runTest(tesseract::ContactCheckerBase& checker, bool use_convex_mesh = fals
 
   EXPECT_TRUE(!result_vector.empty());
   EXPECT_NEAR(result_vector[0].distance, 0.1, 0.0001);
-  EXPECT_NEAR(result_vector[0].nearest_points[0][0], 1.1, 0.001);
   EXPECT_NEAR(result_vector[0].nearest_points[0][1], result_vector[0].nearest_points[1][1], 0.001);
   EXPECT_NEAR(result_vector[0].nearest_points[0][2], result_vector[0].nearest_points[1][2], 0.001);
-  EXPECT_NEAR(result_vector[0].nearest_points[1][0], 1.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[0], -1.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[1], 0.0, 0.001);
-  EXPECT_NEAR(result_vector[0].normal[2], 0.0, 0.001);
+
+  idx = {0, 1, 1};
+  if (result_vector[0].link_names[0] != "box_link")
+    idx = {1, 0, -1};
+
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[0]][0], 1.1, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[1]][0], 1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[0], idx[2] * -1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[1], idx[2] * 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[2], idx[2] * 0.0, 0.001);
+
+}
+
+TEST(TesseractCollisionUnit, BulletCollisionBoxBoxUnit)
+{
+  tesseract::BulletContactChecker checker;
+  runTest(checker);
 }
 
 TEST(TesseractCollisionUnit, FCLCollisionBoxBoxUnit)
@@ -127,12 +143,6 @@ TEST(TesseractCollisionUnit, FCLCollisionBoxBoxConvexHullUnit)
 {
   tesseract::FCLContactChecker checker;
   runTest(checker, true);
-}
-
-TEST(TesseractCollisionUnit, BulletCollisionBoxBoxUnit)
-{
-  tesseract::BulletContactChecker checker;
-  runTest(checker);
 }
 
 int main(int argc, char** argv)

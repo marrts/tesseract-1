@@ -95,7 +95,13 @@ public:
     for (unsigned i = 0; i < collision_objects_.size(); ++i)
     {
       FCLCollisionObjectPtr& co = collision_objects_[i];
-      co->setTransform(pose * shape_poses_[i]);
+      Eigen::Affine3d new_t = pose * shape_poses_[i];
+
+      fcl::Transform3d t;
+      t.translation() = new_t.translation();
+      t.linear() = new_t.rotation();
+
+      co->setTransform(t);
       co->computeAABB();
     }
   }
@@ -255,7 +261,8 @@ bool distanceCallback(fcl::CollisionObjectd* o1, fcl::CollisionObjectd* o2, void
 
 inline void transform2fcl(const Eigen::Affine3d& b, fcl::Transform3d& f)
 {
-  f = b;
+  f.translation() = b.translation();
+  f.linear() = b.rotation();
 }
 
 inline fcl::Transform3d transform2fcl(const Eigen::Affine3d& b)

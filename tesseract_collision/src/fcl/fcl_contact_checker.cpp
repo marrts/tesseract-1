@@ -194,6 +194,11 @@ void FCLContactChecker::setContactRequest(const ContactRequest& req)
 
 const ContactRequest& FCLContactChecker::getContactRequest() const { return request_; }
 
+DiscreteContactManagerBasePtr FCLContactChecker::createDiscreteManager(const ContactRequest& req, const TransformMap& transforms) const
+{
+
+}
+
 void FCLContactChecker::constructFCLObject(FCLManager& manager,
                                            std::vector<std::string>& active_objects,
                                            const TransformMap& transforms,

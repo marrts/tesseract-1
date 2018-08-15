@@ -57,7 +57,8 @@ include_directories(
 
 add_library(${PROJECT_NAME}_bullet
   src/bullet/bullet_contact_checker.cpp
-  src/bullet/bullet_manager.cpp
+  src/bullet/bullet_discrete_managers.cpp
+  src/bullet/bullet_cast_managers.cpp
   src/bullet/bullet_utils.cpp
 )
 
@@ -106,9 +107,6 @@ if (CATKIN_ENABLE_TESTING)
 
   catkin_add_gtest(${PROJECT_NAME}_box_cone_unit test/collision_box_cone_unit.cpp)
   target_link_libraries(${PROJECT_NAME}_box_cone_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_LIBRARIES})
-
-  catkin_add_gtest(${PROJECT_NAME}_box_mesh_unit test/collision_box_mesh_unit.cpp)
-  target_link_libraries(${PROJECT_NAME}_box_mesh_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_LIBRARIES})
 
   catkin_add_gtest(${PROJECT_NAME}_box_box_mesh_unit test/collision_box_box_mesh_unit.cpp)
   target_link_libraries(${PROJECT_NAME}_box_box_mesh_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_LIBRARIES})

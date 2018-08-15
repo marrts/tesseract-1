@@ -4,11 +4,16 @@
 #include <gtest/gtest.h>
 #include <ros/ros.h>
 
-void runTest(tesseract::ContactCheckerBase& checker, bool use_convex_mesh = false)
+void runTest(tesseract::BulletContactChecker& checker, bool use_convex_mesh = false)
 {
   // Add Meshed Sphere to checker
-  shapes::ShapePtr sphere(shapes::createMeshFromResource("package://tesseract_collision/test/sphere_p25m.stl"));
-  double delta = 0.25;
+  shapes::ShapePtr sphere;
+  if (use_convex_mesh)
+    sphere.reset(shapes::createMeshFromResource("package://tesseract_collision/test/sphere_p25m.stl"));
+  else
+    sphere.reset(new shapes::Sphere(0.25));
+
+  double delta = 0.55;
 
   std::size_t t = 10;
   std::vector<std::string> link_names;
@@ -48,15 +53,36 @@ void runTest(tesseract::ContactCheckerBase& checker, bool use_convex_mesh = fals
   req.contact_distance = 0.1;
   req.type = tesseract::ContactRequestType::ALL;
 
-  tesseract::ContactResultMap result;
+
   tesseract::ContactResultVector result_vector;
+  ROS_ERROR_STREAM("Checking Collision");
+  ros::WallTime start_time = ros::WallTime::now();
+  for (auto i = 0; i < 10; ++i)
+  {
+    tesseract::ContactResultMap result;
+    result_vector.clear();
+    checker.calcCollisionsDiscrete(req, location, result);
+    tesseract::moveContactResultsMapToContactResultsVector(result, result_vector);
+  }
+  ros::WallTime end_time = ros::WallTime::now();
+  ROS_ERROR_STREAM("DT: " << (end_time - start_time).toSec());
+
+  ROS_ERROR_STREAM("Num Links: " << link_names.size());
+  ROS_ERROR_STREAM("Contacts: " << result_vector.size());
 
 
   ROS_ERROR_STREAM("Checking Collision");
-  ros::WallTime start_time = ros::WallTime::now();
-  checker.calcCollisionsDiscrete(req, location, result);
-  tesseract::moveContactResultsMapToContactResultsVector(result, result_vector);
-  ros::WallTime end_time = ros::WallTime::now();
+  start_time = ros::WallTime::now();
+  tesseract::DiscreteContactManagerBasePtr manager = checker.createDiscreteManager(req, location);
+  for (auto i = 0; i < 10; ++i)
+  {
+    tesseract::ContactResultMap result;
+    tesseract::ContactDistanceData collisions(&req, &result);
+    result_vector.clear();
+    manager->contactTest(collisions);
+    tesseract::moveContactResultsMapToContactResultsVector(result, result_vector);
+  }
+  end_time = ros::WallTime::now();
   ROS_ERROR_STREAM("DT: " << (end_time - start_time).toSec());
 
   ROS_ERROR_STREAM("Num Links: " << link_names.size());
@@ -80,23 +106,29 @@ void runTest(tesseract::ContactCheckerBase& checker, bool use_convex_mesh = fals
 //  tesseract::moveContactResultsMapToContactResultsVector(result, result_vector);
 }
 
-TEST(TesseractCollisionLargeDataSetUnit, FCLCollisionLargeDataSetUnit)
+TEST(TesseractCollisionLargeDataSetUnit, BulletCollisionLargeDataSetConvexHullUnit)
 {
-  tesseract::FCLContactChecker checker;
-  runTest(checker);
-}
-
-TEST(TesseractCollisionLargeDataSetUnit, FCLCollisionLargeDataSetConvexHullUnit)
-{
-  tesseract::FCLContactChecker checker;
+  tesseract::BulletContactChecker checker;
   runTest(checker, true);
 }
+
+//TEST(TesseractCollisionLargeDataSetUnit, FCLCollisionLargeDataSetConvexHullUnit)
+//{
+//  tesseract::FCLContactChecker checker;
+//  runTest(checker, false);
+//}
 
 TEST(TesseractCollisionLargeDataSetUnit, BulletCollisionLargeDataSetUnit)
 {
   tesseract::BulletContactChecker checker;
   runTest(checker);
 }
+
+//TEST(TesseractCollisionLargeDataSetUnit, FCLCollisionLargeDataSetUnit)
+//{
+//  tesseract::FCLContactChecker checker;
+//  runTest(checker);
+//}
 
 int main(int argc, char** argv)
 {
