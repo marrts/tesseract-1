@@ -121,17 +121,17 @@ if (CATKIN_ENABLE_TESTING)
   catkin_add_gtest(${PROJECT_NAME}_box_box_unit test/collision_box_box_unit.cpp)
   target_link_libraries(${PROJECT_NAME}_box_box_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})
 
-  catkin_add_gtest(${PROJECT_NAME}_large_dataset_unit test/collision_large_dataset_unit.cpp)
-  target_link_libraries(${PROJECT_NAME}_large_dataset_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})
+#  catkin_add_gtest(${PROJECT_NAME}_large_dataset_unit test/collision_large_dataset_unit.cpp)
+#  target_link_libraries(${PROJECT_NAME}_large_dataset_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})
 
   catkin_add_gtest(${PROJECT_NAME}_sphere_sphere_unit test/collision_sphere_sphere_unit.cpp)
   target_link_libraries(${PROJECT_NAME}_sphere_sphere_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})
 
-  catkin_add_gtest(${PROJECT_NAME}_multi_threaded_unit test/collision_multi_threaded_unit.cpp)
-  target_link_libraries(${PROJECT_NAME}_multi_threaded_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})
+#  catkin_add_gtest(${PROJECT_NAME}_multi_threaded_unit test/collision_multi_threaded_unit.cpp)
+#  target_link_libraries(${PROJECT_NAME}_multi_threaded_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})
 
-  catkin_add_gtest(${PROJECT_NAME}_octomap_sphere_unit test/collision_octomap_sphere_unit.cpp)
-  target_link_libraries(${PROJECT_NAME}_octomap_sphere_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})
+#  catkin_add_gtest(${PROJECT_NAME}_octomap_sphere_unit test/collision_octomap_sphere_unit.cpp)
+#  target_link_libraries(${PROJECT_NAME}_octomap_sphere_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})
 
 #  catkin_add_gtest(${PROJECT_NAME}_convex_concave_unit test/convex_concave_unit.cpp)
 #  target_link_libraries(${PROJECT_NAME}_convex_concave_unit ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_INCLUDE_DIRS})

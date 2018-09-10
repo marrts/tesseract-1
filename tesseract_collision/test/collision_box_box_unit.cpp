@@ -1,10 +1,12 @@
 
 #include "tesseract_collision/bullet/bullet_discrete_managers.h"
+#include "tesseract_collision/bullet/bullet_cast_managers.h"
 #include "tesseract_collision/fcl/fcl_discrete_managers.h"
 #include <gtest/gtest.h>
 #include <ros/ros.h>
 
-void addCollisionObjects(tesseract::DiscreteContactManagerBase& checker, bool use_convex_mesh = false)
+template <typename T>
+void addCollisionObjects(T& checker, bool use_convex_mesh = false)
 {
   //////////////////////
   // Add box to checker
@@ -64,7 +66,7 @@ void addCollisionObjects(tesseract::DiscreteContactManagerBase& checker, bool us
   checker.addCollisionObject("second_box_link", 0, obj3_shapes, obj3_poses, obj3_types);
 }
 
-void runTest(tesseract::DiscreteContactManagerBase& checker)
+void runDiscreteTest(tesseract::DiscreteContactManagerBase& checker)
 {
   //////////////////////////////////////
   // Test when object is inside another
@@ -147,46 +149,111 @@ void runTest(tesseract::DiscreteContactManagerBase& checker)
   EXPECT_NEAR(result_vector[0].normal[2], idx[2] * 0.0, 0.001);
 }
 
+void runContinuousTest(tesseract::ContinuousContactManagerBase& checker)
+{
+  //////////////////////////////////////
+  // Test when object is inside another
+  //////////////////////////////////////
+  checker.enableCollisionObject("second_box_link");
+  checker.enableCollisionObject("thin_box_link");
+  checker.disableCollisionObject("box_link");
+
+  tesseract::ContactRequest req;
+  req.link_names.push_back("second_box_link");
+  req.contact_distance = 0.1;
+  req.type = tesseract::ContactRequestType::CLOSEST;
+  checker.setContactRequest(req);
+
+  // Set the collision object transforms
+  tesseract::TransformMap location, location1, location2;
+  // Set static object transforms
+  location["thin_box_link"] = Eigen::Isometry3d::Identity();
+  // Set moving object transforms
+  location1["second_box_link"] = Eigen::Isometry3d::Identity();
+  location1["second_box_link"].translation()(1) = -5.0;
+  location2["second_box_link"] = Eigen::Isometry3d::Identity();
+  location2["second_box_link"].translation()(1) = 5.0;
+
+  checker.setCollisionObjectsTransform(location);
+  checker.setCollisionObjectsTransform(location1, location2);
+
+  // Perform collision check
+  tesseract::ContactResultMap result;
+  checker.contactTest(result);
+
+  tesseract::ContactResultVector result_vector;
+  tesseract::moveContactResultsMapToContactResultsVector(result, result_vector);
+
+  EXPECT_TRUE(!result_vector.empty());
+  EXPECT_NEAR(result_vector[0].distance, -1.30, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[0][1], result_vector[0].nearest_points[1][1], 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[0][2], result_vector[0].nearest_points[1][2], 0.001);
+
+  std::vector<int> idx = { 0, 1, 1 };
+  if (result_vector[0].link_names[0] != "second_box_link")
+    idx = { 1, 0, -1 };
+
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[0]][0], -0.3, 0.001);
+  EXPECT_NEAR(result_vector[0].nearest_points[idx[1]][0], 1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[0], idx[2] * -1.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[1], idx[2] * 0.0, 0.001);
+  EXPECT_NEAR(result_vector[0].normal[2], idx[2] * 0.0, 0.001);
+}
+
 TEST(TesseractCollisionUnit, BulletDiscreteSimpleCollisionBoxBoxUnit)
 {
   tesseract::BulletDiscreteSimpleManager checker;
-  addCollisionObjects(checker, false);
-  runTest(checker);
+  addCollisionObjects<tesseract::DiscreteContactManagerBase>(checker, false);
+  runDiscreteTest(checker);
 }
 
 TEST(TesseractCollisionUnit, BulletDiscreteSimpleCollisionBoxBoxConvexHullUnit)
 {
   tesseract::BulletDiscreteSimpleManager checker;
-  addCollisionObjects(checker, true);
-  runTest(checker);
+  addCollisionObjects<tesseract::DiscreteContactManagerBase>(checker, true);
+  runDiscreteTest(checker);
 }
 
 TEST(TesseractCollisionUnit, BulletDiscreteBVHCollisionBoxBoxUnit)
 {
   tesseract::BulletDiscreteBVHManager checker;
-  addCollisionObjects(checker, false);
-  runTest(checker);
+  addCollisionObjects<tesseract::DiscreteContactManagerBase>(checker, false);
+  runDiscreteTest(checker);
 }
 
 TEST(TesseractCollisionUnit, BulletDiscreteBVHCollisionBoxBoxConvexHullUnit)
 {
   tesseract::BulletDiscreteBVHManager checker;
-  addCollisionObjects(checker, true);
-  runTest(checker);
+  addCollisionObjects<tesseract::DiscreteContactManagerBase>(checker, true);
+  runDiscreteTest(checker);
 }
 
 TEST(TesseractCollisionUnit, FCLDiscreteBVHCollisionBoxBoxUnit)
 {
   tesseract::FCLDiscreteBVHManager checker;
-  addCollisionObjects(checker, false);
-  runTest(checker);
+  addCollisionObjects<tesseract::DiscreteContactManagerBase>(checker, false);
+  runDiscreteTest(checker);
 }
 
 TEST(TesseractCollisionUnit, FCLDiscreteBVHCollisionBoxBoxConvexHullUnit)
 {
   tesseract::FCLDiscreteBVHManager checker;
-  addCollisionObjects(checker, true);
-  runTest(checker);
+  addCollisionObjects<tesseract::DiscreteContactManagerBase>(checker, true);
+  runDiscreteTest(checker);
+}
+
+TEST(TesseractCollisionUnit, BulletContinuousSimpleCollisionBoxBoxUnit)
+{
+  tesseract::BulletCastSimpleManager checker;
+  addCollisionObjects<tesseract::ContinuousContactManagerBase>(checker, false);
+  runContinuousTest(checker);
+}
+
+TEST(TesseractCollisionUnit, BulletContinuousSimpleCollisionBoxBoxConvexHullUnit)
+{
+  tesseract::BulletCastSimpleManager checker;
+  addCollisionObjects<tesseract::ContinuousContactManagerBase>(checker, true);
+  runContinuousTest(checker);
 }
 
 int main(int argc, char** argv)
