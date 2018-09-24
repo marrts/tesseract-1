@@ -452,10 +452,6 @@ void BulletCastSimpleManager::addCollisionObject(const COWPtr& cow)
     cows_.push_back(cow);
 }
 
-////////////////////////////////////////////////
-////////// BulletCastBVHManager ////////////
-////////////////////////////////////////////////
-
 BulletCastBVHManager::BulletCastBVHManager()
 {
   dispatcher_.reset(new btCollisionDispatcher(&coll_config_));

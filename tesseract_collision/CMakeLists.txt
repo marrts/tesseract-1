@@ -56,8 +56,15 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME}_bullet
+<<<<<<< HEAD
   src/bullet/bullet_cast_managers.cpp
   src/bullet/bullet_discrete_managers.cpp
+=======
+  src/bullet/bullet_cast_bvh_managers.cpp
+  src/bullet/bullet_cast_simple_managers.cpp
+  src/bullet/bullet_discrete_bvh_managers.cpp
+  src/bullet/bullet_discrete_simple_managers.cpp
+>>>>>>> e41375b... Restructure bullet manager to be in separate files
   src/bullet/bullet_utils.cpp
 )
 
