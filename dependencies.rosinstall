@@ -1,0 +1,3 @@
+- git:
+    local-name: trajopt_ros
+    uri: https://github.com/ros-industrial-consortium/trajopt_ros.git
