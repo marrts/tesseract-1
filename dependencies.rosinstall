@@ -1,3 +1,4 @@
 - git:
-    local-name: trajopt_ros
+    local-name: trajopt
     uri: https://github.com/ros-industrial-consortium/trajopt_ros.git
+    version: kinetic-devel
