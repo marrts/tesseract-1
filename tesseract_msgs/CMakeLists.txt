@@ -31,6 +31,7 @@ add_message_files(
     Trajectory.msg
     ContactResult.msg
     ContactResultVector.msg
+    Mesh.msg
 )
 
 add_service_files(
