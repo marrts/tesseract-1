@@ -81,9 +81,9 @@ add_library(${PROJECT_NAME}_fcl
 target_link_libraries(${PROJECT_NAME}_fcl ${PROJECT_NAME}_core ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_LIBRARIES} ${console_bridge_LIBRARIES})
 target_compile_options(${PROJECT_NAME}_fcl PRIVATE -Wsuggest-override -Wconversion -Wsign-conversion)
 
-#add_executable(create_convex_hull src/create_convex_hull.cpp)
-#target_link_libraries(create_convex_hull ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES})
-#target_compile_options(create_convex_hull PRIVATE -Wsuggest-override -Wconversion -Wsign-conversion)
+add_executable(create_convex_hull src/create_convex_hull.cpp)
+target_link_libraries(create_convex_hull ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES})
+target_compile_options(create_convex_hull PRIVATE -Wsuggest-override -Wconversion -Wsign-conversion)
 
 # Mark executables and/or libraries for installation
 install(TARGETS ${PROJECT_NAME}_core ${PROJECT_NAME}_bullet ${PROJECT_NAME}_fcl #create_convex_hull
