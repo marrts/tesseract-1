@@ -95,7 +95,7 @@ else()
         EIGEN3
         Boost
         OCTOMAP
-        LIBFCL
+        fcl
         ccd
         console_bridge)
 
@@ -111,6 +111,8 @@ else()
         endmacro()
 
     endif()
+
+    ament_package()
 
 endif()
 
