@@ -70,6 +70,8 @@ else()
     find_package(ament_cmake REQUIRED)
     find_package(Bullet REQUIRED)
 
+    add_definitions(${BULLET_DEFINITIONS})
+
     set(ROS_LIBRARIES ${BULLET_LIBRARIES})
     set(ROS_INCLUDE_DIRS ${BULLET_INCLUDE_DIR})
 
@@ -77,17 +79,19 @@ else()
         include
         ${CCD_INCLUDE_DIRS}
         ${LIBFCL_INCLUDE_DIRS}
-        ${EIGEN3_INCLUDE_DIRS})
+        ${EIGEN3_INCLUDE_DIRS}
+        ${BULLET_INCLUDE_DIR})
 
     ament_export_libraries(
         ${PROJECT_NAME}_core
         ${PROJECT_NAME}_bullet
         ${PROJECT_NAME}_fcl
         ${OCTOMAP_LIBRARIES}
-        ${LIBFCL_LIBRARIES})
+        ${LIBFCL_LIBRARIES}
+        ${BULLET_LIBRARIES})
 
     ament_export_dependencies(
-        bullet3_ros
+        Bullet
         EIGEN3
         Boost
         OCTOMAP
@@ -119,11 +123,11 @@ include_directories(
   SYSTEM ${OCTOMAP_INCLUDE_DIRS}
 )
 
-add_library(${PROJECT_NAME}_core src/core/collision_shapes.cpp)
+add_library(${PROJECT_NAME}_core SHARED src/core/collision_shapes.cpp)
 target_link_libraries(${PROJECT_NAME}_core ${ROS_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${console_bridge_LIBRARIES})
 target_compile_options(${PROJECT_NAME}_core PRIVATE -Wsuggest-override -Wconversion -Wsign-conversion)
 
-add_library(${PROJECT_NAME}_bullet
+add_library(${PROJECT_NAME}_bullet SHARED 
   src/bullet/bullet_cast_bvh_manager.cpp
   src/bullet/bullet_cast_simple_manager.cpp
   src/bullet/bullet_discrete_bvh_manager.cpp
@@ -133,7 +137,7 @@ add_library(${PROJECT_NAME}_bullet
 target_link_libraries(${PROJECT_NAME}_bullet ${PROJECT_NAME}_core ${ROS_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${console_bridge_LIBRARIES})
 target_compile_options(${PROJECT_NAME}_bullet PRIVATE -Wsuggest-override -Wconversion -Wsign-conversion)
 
-add_library(${PROJECT_NAME}_fcl src/fcl/fcl_discrete_managers.cpp src/fcl/fcl_utils.cpp)
+add_library(${PROJECT_NAME}_fcl SHARED src/fcl/fcl_discrete_managers.cpp src/fcl/fcl_utils.cpp)
 target_link_libraries(${PROJECT_NAME}_fcl ${PROJECT_NAME}_core ${ROS_LIBRARIES} ${Boost_LIBRARIES} ${OCTOMAP_LIBRARIES} ${LIBFCL_LIBRARIES} ${console_bridge_LIBRARIES})
 target_compile_options(${PROJECT_NAME}_fcl PRIVATE -Wsuggest-override -Wconversion -Wsign-conversion)
 
@@ -146,7 +150,7 @@ if ($ENV{ROS_VERSION} VERSION_EQUAL "1")
     set(ROS_BIN_DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
     set(ROS_INCLUDE_DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 else()
-    set(ROS_LIB_DESTINATION lib})
+    set(ROS_LIB_DESTINATION lib)
     set(ROS_BIN_DESTINATION bin)
     set(ROS_INCLUDE_DESTINATION include)
 endif()
