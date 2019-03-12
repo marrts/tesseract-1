@@ -11,6 +11,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>tesseract_collision</depend>
+  <depend>libogre-dev</depend>
+  <depend>opengl</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
