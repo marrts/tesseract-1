@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/tesseract_visualization">
+        <file>ConfigurationWidget.qml</file>
+        <file>ConfigurationWidgetForm.ui.qml</file>
+        <file>JointManipulationWidgetForm.ui.qml</file>
+        <file>JointManipulationWidget.qml</file>
+    </qresource>
+</RCC>
