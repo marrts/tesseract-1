@@ -13,6 +13,8 @@ find_package(tesseract_geometry REQUIRED) # This should not be required, must be
 find_package(tesseract_visualization REQUIRED)
 find_package(tesseract_collision REQUIRED)
 find_package(tesseract_common REQUIRED)
+find_package(tesseract_process_planning REQUIRED)
+
 
 catkin_package(
   INCLUDE_DIRS
