@@ -6,7 +6,6 @@ set_and_check(@PROJECT_NAME@_LIBRARY_DIRS "${PACKAGE_PREFIX_DIR}/lib")
 
 include(CMakeFindDependencyMacro)
 find_dependency(tesseract_common)
-find_dependency(tesseract_geometry)
-find_dependency(tesseract_collision)
+find_dependency(tesseract_planners)
 
 include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@-targets.cmake")

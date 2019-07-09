@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>tesseract_process_planning</name>
+  <version>0.0.0</version>
+  <description>The tesseract_process_planning package</description>
+  <author email="jrgnichodevel@gmail.com">Jorge Nicho</author>
+  <maintainer email="jrgnichodevel@gmail.com">Jorge Nicho</maintainer>
+  <maintainer email="matthew.powelson@swri.org">mpowelson</maintainer>
+
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>tesseract_common</depend>
+  <depend>tesseract_planners</depend>
+  
+  <export>
+  	<build_type>cmake</build_type>
+  </export>
+</package>
