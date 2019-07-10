@@ -1,5 +1,5 @@
-#ifndef TESSERACT_PROCESS_PLANNING_CONVERSIONS_H
-#define TESSERACT_PROCESS_PLANNING_CONVERSIONS_H
+#ifndef TESSERACT_ROSUTILS_CONVERSIONS_H
+#define TESSERACT_ROSUTILS_CONVERSIONS_H
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -12,7 +12,7 @@
 #include <iostream>
 #include <fstream>
 
-namespace tesseract_process_planning
+namespace tesseact_rosutils
 {
 
 /**
@@ -200,4 +200,4 @@ bool toCSVFile(const trajectory_msgs::JointTrajectory& joint_trajectory, const s
   return true;
 }
 }
-#endif // TESSERACT_PROCESS_PLANNING_CONVERSIONS_H
+#endif // TESSERACT_ROSUTILS_CONVERSIONS_H
