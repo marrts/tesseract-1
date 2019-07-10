@@ -1,7 +1,7 @@
 
-#include <tesseract_process_planning/process_definition.h>
+#include <tesseract_process_planners/process_definition.h>
 
-namespace tesseract_process_planning
+namespace tesseract_process_planners
 {
 
 ProcessDefinition generateProcessDefinition(const ProcessDefinitionConfig& process_config, const ProcessSegmentDefinitionConfig& segment_config)

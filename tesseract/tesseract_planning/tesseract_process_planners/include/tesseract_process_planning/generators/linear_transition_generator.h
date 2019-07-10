@@ -1,11 +1,11 @@
 #ifndef TESSERACT_PLANNING_LINEAR_TRANSITION_GENERATOR_H
 #define TESSERACT_PLANNING_LINEAR_TRANSITION_GENERATOR_H
 
-#include <tesseract_process_planning/process_definition.h>
+#include <tesseract_process_planners/process_definition.h>
 #include <tesseract_planning/utils.h>
 #include <Eigen/Core>
 
-namespace tesseract_process_planning
+namespace tesseract_process_planners
 {
 
 class LinearTransitionGenerator : public ProcessTransitionGenerator

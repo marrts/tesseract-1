@@ -1,9 +1,9 @@
 #ifndef TESSERACT_PLANNING_PASSTHROUGH_PROCESS_GENERATOR_H
 #define TESSERACT_PLANNING_PASSTHROUGH_PROCESS_GENERATOR_H
 
-#include <tesseract_process_planning/process_definition.h>
+#include <tesseract_process_planners/process_definition.h>
 
-namespace tesseract_process_planning
+namespace tesseract_process_planners
 {
 
 class PassthroughProcessGenerator : public ProcessStepGenerator

@@ -1,10 +1,10 @@
 #ifndef TESSERACT_PLANNING_AXIAL_DEPARTURE_GENERATOR_H
 #define TESSERACT_PLANNING_AXIAL_DEPARTURE_GENERATOR_H
 
-#include <tesseract_process_planning/process_definition.h>
+#include <tesseract_process_planners/process_definition.h>
 #include <Eigen/Core>
 
-namespace tesseract_process_planning
+namespace tesseract_process_planners
 {
 
 class AxialDepartureGenerator : public ProcessStepGenerator

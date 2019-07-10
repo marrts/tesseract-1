@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5.0)
-project(tesseract_process_planning VERSION 0.1.0 LANGUAGES CXX)
+project(tesseract_process_planners VERSION 0.1.0 LANGUAGES CXX)
 
 find_package(tesseract REQUIRED)
 find_package(Eigen3 REQUIRED)

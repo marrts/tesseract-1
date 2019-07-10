@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>tesseract_process_planning</name>
+  <name>tesseract_process_planners</name>
   <version>0.0.0</version>
-  <description>The tesseract_process_planning package</description>
+  <description>The tesseract_process_planners package</description>
   <author email="jrgnichodevel@gmail.com">Jorge Nicho</author>
   <maintainer email="jrgnichodevel@gmail.com">Jorge Nicho</maintainer>
   <maintainer email="matthew.powelson@swri.org">mpowelson</maintainer>

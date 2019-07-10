@@ -4,11 +4,11 @@
 #include <Eigen/Core>
 #include <tesseract_planners/core/waypoint.h>
 
-namespace tesseract_process_planning
+namespace tesseract_process_planners
 {
 
 /**
- * @class tesseract_process_planning::ProcessSegmentDefinition
+ * @class tesseract_process_planners::ProcessSegmentDefinition
  * @details
  * A process segment definition is assumed to have three components, an approach, process and departure.
  *
@@ -50,7 +50,7 @@ struct ProcessTransitionDefinition
 };
 
 /**
- * @class tesseract_process_planning::ProcessDefinition
+ * @class tesseract_process_planners::ProcessDefinition
  * @details A process definition.
  *
  * This is not intended to support or handle all processes but should covers most of the common ones
@@ -73,7 +73,7 @@ struct ProcessDefinition
 };
 
 /**definition
- * @class tesseract_process_planning::ProcessTransitionGenerator
+ * @class tesseract_process_planners::ProcessTransitionGenerator
  */
 class ProcessTransitionGenerator
 {
@@ -87,7 +87,7 @@ typedef std::shared_ptr<const ProcessTransitionGenerator> ProcessTransitionGener
 
 
 /**
- * @class tesseract_process_planning::ProcessDefinitionConfig
+ * @class tesseract_process_planners::ProcessDefinitionConfig
  * @details The Process Definition Config
  *
  * This provides the high level process configuration information. It requires the user to provide
