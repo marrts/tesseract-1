@@ -30,13 +30,13 @@ struct ProcessSegmentPlan
 */
 struct ProcessPlan
 {
-  tesseract_common::TrajArray from_home;                          /**< A trajectory from the home position to the firts point in the first segment */
+  tesseract_common::TrajArray from_start;                          /**< A trajectory from the start position to the first point in the first segment */
   std::vector<ProcessSegmentPlan> segments;                /**< A vector of process segment results */
   std::vector<tesseract_common::TrajArray> transition_from_start; /**< A vector of transition plans from the start of segment[i] to the end of segment[i+1]
    	   	   	   	   	   	   	   	   	   	   	   	   	   	   	   	, this data can be useful to make quick exit moves after canceling an ongoing process */
   std::vector<tesseract_common::TrajArray> transition_from_end;   /**< A vector of transition plans from the end of segment[i] to the start of segment[i+1] */
-  tesseract_common::TrajArray to_home;                            /**< A trajectory from the last segments waypoint to the home position */
-  bool valid = true;                                       /**< If true, a motion plan was sucessfully found for everything, otherwise false */
+  tesseract_common::TrajArray to_start;                            /**< A trajectory from the last segments waypoint to the start position */
+  bool valid = true;                                       /**< If true, a motion plan was successfully found for everything, otherwise false */
 };
 
 /**

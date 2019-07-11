@@ -60,7 +60,7 @@ struct ProcessTransitionDefinition
  *    * The robot starts from a start position,
  *    * Moves to an approach position just above the object
  *    * Executes a process(sanding, painting, etc.)
- *    * Return to the home position
+ *    * Return to the start position
  *
  * Given the process described the user is only required to define two objects. The start position of
  * the robot and a vector of Process Segment Definitions.
@@ -91,7 +91,7 @@ typedef std::shared_ptr<const ProcessTransitionGenerator> ProcessTransitionGener
  * @details The Process Definition Config
  *
  * This provides the high level process configuration information. It requires the user to provide
- * the home position waypoint (JointWaypoint) and a set of tool paths (strokes) that should be
+ * the start position waypoint (JointWaypoint) and a set of tool paths (strokes) that should be
  * converted into a process results definition leveraging both this configuration information and
  * the ProcessSegmentDefinitions.
  *
