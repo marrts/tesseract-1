@@ -119,7 +119,16 @@ struct ProcessDefinitionConfig
 
 
 /**
- * @brief The ProcessStepGenerator class
+ * @class tesseract_process_planners::ProcessStepGenerator
+ * @details
+ * This is a base class for process step generators. A process step generator takes tool path segments and
+ * converts them into process tool path. Currently we assume that each tool path segment has three
+ * steps Approach, Process, and Departure. Example case is using raster tool paths on surfaces but these need
+ * to be modified based on the process that will be using those tool paths. Custom implementations of this class
+ *  could for instance not want to stay normal to the surface but apply an angle of attack instead.
+ * Therefore the specialized implementation would take the tool path segments and generate a new segments with
+ * modified poses that accommodate the angle of attack. This class aims to bridge the gap between surface rastering
+ * libraries and the planners so neither of these library need to know anything about the particular process.
  */
 class ProcessStepGenerator
 {
