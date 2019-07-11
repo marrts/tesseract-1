@@ -8,7 +8,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_common/types.h>
 
-namespace tesseract_planners
+namespace tesseract_motion_planners
 {
 tesseract_common::TrajArray toTrajArray(const ompl::geometric::PathGeometric& path);
 }

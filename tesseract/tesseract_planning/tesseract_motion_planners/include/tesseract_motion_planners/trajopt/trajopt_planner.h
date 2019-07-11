@@ -31,9 +31,9 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <trajopt/problem_description.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_planners/core/planner.h>
+#include <tesseract_motion_planners/core/planner.h>
 
-namespace tesseract_planners
+namespace tesseract_motion_planners
 {
 struct TrajOptPlannerConfig
 {
@@ -89,5 +89,5 @@ public:
 
   void clear() override;
 };
-}  // namespace tesseract_planners
+}  // namespace tesseract_motion_planners
 #endif  // TESSERACT_PLANNING_TRAJOPT_PLANNER_H

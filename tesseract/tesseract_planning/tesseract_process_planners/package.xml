@@ -11,7 +11,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>tesseract_common</depend>
-  <depend>tesseract_planners</depend>
+  <depend>tesseract_motion_planners</depend>
   
   <export>
   	<build_type>cmake</build_type>

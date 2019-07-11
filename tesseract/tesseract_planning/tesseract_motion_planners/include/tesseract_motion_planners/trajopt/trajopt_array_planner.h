@@ -31,10 +31,10 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <trajopt/problem_description.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_planners/core/planner.h>
-#include <tesseract_planners/core/waypoint.h>
+#include <tesseract_motion_planners/core/planner.h>
+#include <tesseract_motion_planners/core/waypoint.h>
 
-namespace tesseract_planners
+namespace tesseract_motion_planners
 {
 /**
  * @brief Config to setup array planner. The input is a vector of waypoints
@@ -129,5 +129,5 @@ public:
 
   void clear() override;
 };
-}  // namespace tesseract_planners
+}  // namespace tesseract_motion_planners
 #endif  // TESSERACT_PLANNING_TRAJOPT_PLANNER_H

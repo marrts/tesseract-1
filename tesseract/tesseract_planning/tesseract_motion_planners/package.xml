@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>tesseract_planners</name>
+  <name>tesseract_motion_planners</name>
   <version>0.1.0</version>
   <description>This contains tesseract planners</description>
 

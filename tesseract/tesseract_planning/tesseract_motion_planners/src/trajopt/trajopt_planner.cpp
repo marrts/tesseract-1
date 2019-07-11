@@ -36,11 +36,11 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <tesseract_environment/core/utils.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_planners/trajopt/trajopt_planner.h>
+#include <tesseract_motion_planners/trajopt/trajopt_planner.h>
 
 using namespace trajopt;
 
-namespace tesseract_planners
+namespace tesseract_motion_planners
 {
 bool TrajOptPlanner::solve(PlannerResponse& response)
 {
@@ -135,4 +135,4 @@ bool TrajOptPlanner::solve(PlannerResponse& response, const TrajOptPlannerConfig
 
 bool TrajOptPlanner::terminate() { return false; }
 void TrajOptPlanner::clear() { request_ = PlannerRequest(); }
-}  // namespace tesseract_planners
+}  // namespace tesseract_motion_planners

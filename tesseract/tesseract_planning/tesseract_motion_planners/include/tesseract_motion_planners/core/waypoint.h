@@ -33,7 +33,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <vector>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-namespace tesseract_planners
+namespace tesseract_motion_planners
 {
 /** @brief Used to specify the type of waypoint. Corresponds to a derived class of Waypoint*/
 enum class WaypointType
@@ -123,5 +123,5 @@ typedef std::shared_ptr<const JointTolerancedWaypoint> JointTolerancedWaypointCo
 typedef std::shared_ptr<CartesianWaypoint> CartesianWaypointPtr;
 typedef std::shared_ptr<const CartesianWaypoint> CartesianWaypointConstPtr;
 
-}  // namespace tesseract_planners
+}  // namespace tesseract_motion_planners
 #endif

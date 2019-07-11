@@ -28,7 +28,7 @@
 
 #include <tesseract/tesseract.h>
 
-namespace tesseract_planners
+namespace tesseract_motion_planners
 {
 /** @brief Negative status code should be related to errors and positive should be used for status of covergenace */
 typedef std::unordered_map<int, std::string> StatusCodeMap;
