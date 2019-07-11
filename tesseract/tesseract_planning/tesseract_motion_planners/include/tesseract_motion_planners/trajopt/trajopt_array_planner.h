@@ -95,7 +95,7 @@ struct TrajOptArrayPlannerConfig
  * @brief This planner is intended to provide an easy to use interface to TrajOpt for array planning. It takes an array
  * of target waypoints and automates the creation and solve of the TrajOpt Problem
  */
-class TrajOptArrayPlanner : public BasicPlanner
+class TrajOptArrayPlanner : public MotionPlanner
 {
 public:
   /** @brief Construct a basic planner */
@@ -114,7 +114,7 @@ public:
   // TODO: Not sure what to do here, but this is defined in the base as virtual
   bool solve(PlannerResponse& response) override { return false; };
   /**
-   * @brief Sets up the TrajOpt problem then solves using TrajOptPlanner
+   * @brief Sets up the TrajOpt problem then solves using TrajOptMotionPlanner
    *
    *
    * Note: This does not use the request information because everything is provided by config parameter

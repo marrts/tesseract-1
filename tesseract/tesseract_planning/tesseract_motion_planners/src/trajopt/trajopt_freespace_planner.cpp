@@ -36,7 +36,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_motion_planners/trajopt/trajopt_freespace_planner.h>
-#include <tesseract_motion_planners/trajopt/trajopt_planner.h>
+#include <tesseract_motion_planners/trajopt/trajopt_motion_planner.h>
 
 using namespace trajopt;
 
@@ -337,7 +337,7 @@ bool TrajOptFreespacePlanner::solve(PlannerResponse& response, TrajOptFreespaceP
   config_planner.params = config.params_;
   config_planner.callbacks = config.callbacks_;
 
-  tesseract_motion_planners::TrajOptPlanner planner;
+  tesseract_motion_planners::TrajOptMotionPlanner planner;
   tesseract_motion_planners::PlannerResponse planning_response;
 
   // Solve problem. Results are stored in the response

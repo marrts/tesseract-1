@@ -103,7 +103,7 @@ struct TrajOptFreespacePlannerConfig
  * @brief This planner is intended to provide an easy to use interface to TrajOpt for freespace planning. It is made to
  * take a start and end point and automate the generation of the TrajOpt problem.
  */
-class TrajOptFreespacePlanner : public BasicPlanner
+class TrajOptFreespacePlanner : public MotionPlanner
 {
 public:
   /** @brief Construct a basic planner */
@@ -122,7 +122,7 @@ public:
   // TODO: Not sure what to do here, but this is defined in the base as virtual
   bool solve(PlannerResponse& response) override { return false; };
   /**
-   * @brief Sets up the TrajOpt problem then solves using TrajOptPlanner. It is intended to simplify setting up and
+   * @brief Sets up the TrajOpt problem then solves using TrajOptMotionPlanner. It is intended to simplify setting up and
    * solving freespace motion problems.
    *
    * This planner (and the associated config) does not expose all of the available configuration data in TrajOpt. This

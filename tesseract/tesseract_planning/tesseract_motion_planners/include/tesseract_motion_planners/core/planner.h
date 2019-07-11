@@ -35,12 +35,12 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 namespace tesseract_motion_planners
 {
-class BasicPlanner
+class MotionPlanner
 {
 public:
   /** @brief Construct a basic planner */
-  BasicPlanner() {}
-  virtual ~BasicPlanner() {}
+  MotionPlanner() {}
+  virtual ~MotionPlanner() {}
   /** @brief Get the name of this planner */
   const std::string& getName() const { return name_; }
   /** @brief Get the planner request */

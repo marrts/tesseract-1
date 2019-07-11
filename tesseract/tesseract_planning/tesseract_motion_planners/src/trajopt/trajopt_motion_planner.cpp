@@ -36,13 +36,13 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <tesseract_environment/core/utils.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_motion_planners/trajopt/trajopt_planner.h>
+#include <tesseract_motion_planners/trajopt/trajopt_motion_planner.h>
 
 using namespace trajopt;
 
 namespace tesseract_motion_planners
 {
-bool TrajOptPlanner::solve(PlannerResponse& response)
+bool TrajOptMotionPlanner::solve(PlannerResponse& response)
 {
   Json::Value root;
   Json::Reader reader;
@@ -71,7 +71,7 @@ bool TrajOptPlanner::solve(PlannerResponse& response)
   return solve(response, prob);
 }
 
-bool TrajOptPlanner::solve(PlannerResponse& response, const TrajOptPlannerConfig& config)
+bool TrajOptMotionPlanner::solve(PlannerResponse& response, const TrajOptPlannerConfig& config)
 {
   // Create optimizer
   sco::BasicTrustRegionSQP opt(config.prob);
@@ -133,6 +133,6 @@ bool TrajOptPlanner::solve(PlannerResponse& response, const TrajOptPlannerConfig
   return (response.status_code >= 0);
 }
 
-bool TrajOptPlanner::terminate() { return false; }
-void TrajOptPlanner::clear() { request_ = PlannerRequest(); }
+bool TrajOptMotionPlanner::terminate() { return false; }
+void TrajOptMotionPlanner::clear() { request_ = PlannerRequest(); }
 }  // namespace tesseract_motion_planners

@@ -25,7 +25,7 @@ target_include_directories(${PROJECT_NAME}_core SYSTEM INTERFACE
     ${EIGEN3_INCLUDE_DIRS})
 
 # Trajopt Planner
-add_library(${PROJECT_NAME}_trajopt SHARED src/trajopt/trajopt_planner.cpp)
+add_library(${PROJECT_NAME}_trajopt SHARED src/trajopt/trajopt_motion_planner.cpp)
 target_link_libraries(${PROJECT_NAME}_trajopt PUBLIC ${PROJECT_NAME}_core trajopt::trajopt trajopt::trajopt_utils trajopt::trajopt_sco)
 target_compile_options(${PROJECT_NAME}_trajopt PRIVATE -Wsuggest-override -Wconversion -Wsign-conversion)
 if(CXX_FEATURE_FOUND EQUAL "-1")

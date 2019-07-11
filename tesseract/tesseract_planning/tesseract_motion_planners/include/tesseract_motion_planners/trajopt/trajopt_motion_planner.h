@@ -49,11 +49,11 @@ struct TrajOptPlannerConfig
   std::vector<sco::Optimizer::Callback> callbacks;
 };
 
-class TrajOptPlanner : public BasicPlanner
+class TrajOptMotionPlanner : public MotionPlanner
 {
 public:
   /** @brief Construct a basic planner */
-  TrajOptPlanner()
+  TrajOptMotionPlanner()
   {
     name_ = "TRAJOPT";
 
@@ -66,7 +66,7 @@ public:
     status_code_map_[-3] = "Failed to find valid solution";
     status_code_map_[-4] = "Found valid solution, but is in collision";
   }
-  ~TrajOptPlanner() override {}
+  ~TrajOptMotionPlanner() override {}
   /**
    * @brief Sets up the opimizer and solves a SQP problem read from json with no callbacks and dafault parameterss
    * @param response The results of the optimization. Primary output is the optimized joint trajectory
