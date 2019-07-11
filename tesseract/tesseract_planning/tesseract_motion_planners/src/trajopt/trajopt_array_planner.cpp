@@ -42,11 +42,67 @@ using namespace trajopt;
 
 namespace tesseract_motion_planners
 {
-bool TrajOptArrayPlanner::solve(PlannerResponse& response, const TrajOptArrayPlannerConfig& config)
+
+TrajOptArrayPlanner::TrajOptArrayPlanner(const TrajOptArrayPlannerConfig& config, const std::string& name):
+  config_(nullptr),
+  pci_(nullptr)
+{
+  name_ = name;
+  // TODO: These should be tied to enumeration ints and returned through an getLastErrorMsg() method
+  // Error Status Codes
+  status_code_map_[-1] = "Invalid config data format";
+  status_code_map_[-2] = "Failed to parse config data";
+  status_code_map_[-3] = "";
+
+  configure(config);
+}
+
+bool TrajOptArrayPlanner::terminate()
+{
+  ROS_WARN("Termination of ongoing optimization is not implemented yet");
+  return false;
+}
+void TrajOptArrayPlanner::clear() { request_ = PlannerRequest(); }
+
+bool TrajOptArrayPlanner::isConfigured() const
+{
+  return pci_ != nullptr && config_ != nullptr;
+}
+
+bool TrajOptArrayPlanner::solve(PlannerResponse& response) const
+{
+  if(!isConfigured())
+  {
+    ROS_ERROR("Planner %s is not configured", name_.c_str());
+    return false;
+  }
+
+  trajopt::TrajOptProbPtr prob = ConstructProblem(*pci_);
+
+  // -------- Solve the problem ------------
+  // ---------------------------------------
+  // Set the parameters in trajopt_planner
+  tesseract_motion_planners::TrajOptPlannerConfig config_planner(prob);
+  config_planner.params = config_->params_;
+  config_planner.callbacks = config_->callbacks_;
+
+  tesseract_motion_planners::TrajOptMotionPlanner planner(config_planner);
+  tesseract_motion_planners::PlannerResponse planning_response;
+
+  // Solve problem. Results are stored in the response
+  bool success = planner.solve(planning_response);
+  response = std::move(planning_response);
+  return success;
+}
+
+bool TrajOptArrayPlanner::configure(const TrajOptArrayPlannerConfig& config)
 {
   // Check that parameters are valid
   if (config.tesseract_ == nullptr)
-    throw std::invalid_argument("In trajopt_array_planner: tesseract_ is a required parameter and has not been set");
+  {
+    ROS_ERROR("In trajopt_array_planner: tesseract_ is a required parameter and has not been set");
+    return false;
+  }
 
   // -------- Construct the problem ------------
   // -------------------------------------------
@@ -54,7 +110,10 @@ bool TrajOptArrayPlanner::solve(PlannerResponse& response, const TrajOptArrayPla
   pci.kin = pci.getManipulator(config.manipulator_);
 
   if (pci.kin == nullptr)
-    throw std::invalid_argument("In trajopt_array_planner: manipulator_ does not exist in kin_map_");
+  {
+    ROS_ERROR("In trajopt_array_planner: manipulator_ does not exist in kin_map_");
+    return false;
+  }
 
   // Populate Basic Info
   pci.basic_info.n_steps = static_cast<int>(config.target_waypoints_.size());
@@ -231,25 +290,9 @@ bool TrajOptArrayPlanner::solve(PlannerResponse& response, const TrajOptArrayPla
     pci.cost_infos.push_back(jp);
   }
 
-  trajopt::TrajOptProbPtr prob = ConstructProblem(pci);
-
-  // -------- Solve the problem ------------
-  // ---------------------------------------
-  // Set the parameters in trajopt_planner
-  tesseract_motion_planners::TrajOptPlannerConfig config_planner(prob);
-  config_planner.params = config.params_;
-  config_planner.callbacks = config.callbacks_;
-
-  tesseract_motion_planners::TrajOptMotionPlanner planner;
-  tesseract_motion_planners::PlannerResponse planning_response;
-
-  // Solve problem. Results are stored in the response
-  bool success = planner.solve(planning_response, config_planner);
-  response = planning_response;
-
-  return success;
+  pci_ = std::make_shared<ProblemConstructionInfo>(pci);
+  config_ = std::make_shared<TrajOptArrayPlannerConfig>(config);
+  return true;
 }
 
-bool TrajOptArrayPlanner::terminate() { return false; }
-void TrajOptArrayPlanner::clear() { request_ = PlannerRequest(); }
 }  // namespace tesseract_motion_planners

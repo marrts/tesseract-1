@@ -47,9 +47,17 @@ public:
   const PlannerRequest& getRequest() const { return request_; }
   /** @brief Set the planner request for this context */
   void setRequest(const PlannerRequest& request) { request_ = request; }
+
   const StatusCodeMap& getAvailableStatusCodes() const { return status_code_map_; }
+
   /** @brief Solve the planner request problem */
-  virtual bool solve(PlannerResponse& res) = 0;
+  virtual bool solve(PlannerResponse& res) const = 0;
+
+  /**
+   * @brief checks if the planner is configured for planning
+   * @return True if configured, false otherwise
+   */
+  virtual bool isConfigured() const = 0;
 
   /**
    * @brief If solve() is running, terminate the computation. Return false if termination not possible. No-op if

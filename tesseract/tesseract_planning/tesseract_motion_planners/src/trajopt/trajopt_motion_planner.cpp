@@ -42,44 +42,47 @@ using namespace trajopt;
 
 namespace tesseract_motion_planners
 {
-bool TrajOptMotionPlanner::solve(PlannerResponse& response)
+TrajOptMotionPlanner::TrajOptMotionPlanner(const TrajOptPlannerConfig& config, const std::string& name ):
+    config_(nullptr)
 {
-  Json::Value root;
-  Json::Reader reader;
-  if (request_.config_format == "json")
+  name_ = name;
+
+  // Success Status Codes
+  status_code_map_[0] = "Found valid solution";
+
+  // TODO: These should be tied to enumeration ints and returned through an getLastErrorMsg() method
+  // Error Status Codes
+  status_code_map_[-1] = "Invalid config data format";
+  status_code_map_[-2] = "Failed to parse config data";
+  status_code_map_[-3] = "Failed to find valid solution";
+  status_code_map_[-4] = "Found valid solution, but is in collision";
+
+  configure(config);
+}
+
+bool TrajOptMotionPlanner::terminate()
+{
+  ROS_WARN("Termination of ongoing optimization is not implemented yet");
+  return false;
+}
+
+void TrajOptMotionPlanner::clear() { request_ = PlannerRequest(); }
+
+bool TrajOptMotionPlanner::solve(PlannerResponse& response) const
+{
+  if(isConfigured())
   {
-    bool parse_success = reader.parse(request_.config.c_str(), root);
-    if (!parse_success)
-    {
-      ROS_FATAL("Failed to pass valid json file in the request");
-      response.status_code = -2;
-      response.status_description = status_code_map_[-2];
-      return false;
-    }
-  }
-  else
-  {
-    ROS_FATAL("Invalid config format: %s. Only json format is currently "
-              "support for this planner.",
-              request_.config_format.c_str());
-    response.status_code = -1;
-    response.status_description = status_code_map_[-1];
+    ROS_ERROR("Planner %s is not configured", name_.c_str());
     return false;
   }
 
-  TrajOptProbPtr prob = ConstructProblem(root, request_.tesseract);
-  return solve(response, prob);
-}
-
-bool TrajOptMotionPlanner::solve(PlannerResponse& response, const TrajOptPlannerConfig& config)
-{
   // Create optimizer
-  sco::BasicTrustRegionSQP opt(config.prob);
-  opt.setParameters(config.params);
-  opt.initialize(trajToDblVec(config.prob->GetInitTraj()));
+  sco::BasicTrustRegionSQP opt(config_->prob);
+  opt.setParameters(config_->params);
+  opt.initialize(trajToDblVec(config_->prob->GetInitTraj()));
 
   // Add all callbacks
-  for (const sco::Optimizer::Callback& callback : config.callbacks)
+  for (const sco::Optimizer::Callback& callback : config_->callbacks)
   {
     opt.addCallback(callback);
   }
@@ -91,48 +94,63 @@ bool TrajOptMotionPlanner::solve(PlannerResponse& response, const TrajOptPlanner
 
   // Check and report collisions
   std::vector<tesseract_collision::ContactResultMap> collisions;
-  tesseract_collision::ContinuousContactManagerPtr continuous_manager = config.prob->GetEnv()->getContinuousContactManager();
-  tesseract_environment::AdjacencyMapPtr adjacency_map = std::make_shared<tesseract_environment::AdjacencyMap>(config.prob->GetEnv()->getSceneGraph(),
-                                                                                                               config.prob->GetKin()->getActiveLinkNames(),
-                                                                                                               config.prob->GetEnv()->getCurrentState()->transforms);
+  tesseract_collision::ContinuousContactManagerPtr continuous_manager = config_->prob->GetEnv()->getContinuousContactManager();
+  tesseract_environment::AdjacencyMapPtr adjacency_map = std::make_shared<tesseract_environment::AdjacencyMap>(
+      config_->prob->GetEnv()->getSceneGraph(),
+      config_->prob->GetKin()->getActiveLinkNames(),
+      config_->prob->GetEnv()->getCurrentState()->transforms);
 
   continuous_manager->setActiveCollisionObjects(adjacency_map->getActiveLinkNames());
   continuous_manager->setContactDistanceThreshold(0);
   collisions.clear();
-  bool found = checkTrajectory(*continuous_manager, *config.prob->GetEnv(), config.prob->GetKin()->getJointNames(), getTraj(opt.x(), config.prob->GetVars()), collisions);
+  bool found = checkTrajectory(*continuous_manager, *config_->prob->GetEnv(),
+                               config_->prob->GetKin()->getJointNames(),
+                               getTraj(opt.x(), config_->prob->GetVars()), collisions);
 
   // Do a discrete check until continuous collision checking is updated to do dynamic-dynamic checking
-  tesseract_collision::DiscreteContactManagerPtr discrete_manager = config.prob->GetEnv()->getDiscreteContactManager();
+  tesseract_collision::DiscreteContactManagerPtr discrete_manager = config_->prob->GetEnv()->getDiscreteContactManager();
   discrete_manager->setActiveCollisionObjects(adjacency_map->getActiveLinkNames());
   discrete_manager->setContactDistanceThreshold(0);
   collisions.clear();
 
-  found = found || checkTrajectory(*discrete_manager, *config.prob->GetEnv(), config.prob->GetKin()->getJointNames(), getTraj(opt.x(), config.prob->GetVars()), collisions);
+  found = found || checkTrajectory(*discrete_manager, *config_->prob->GetEnv(),
+                                   config_->prob->GetKin()->getJointNames(),
+                                   getTraj(opt.x(), config_->prob->GetVars()),
+                                   collisions);
 
   // Send response
-  response.trajectory = getTraj(opt.x(), config.prob->GetVars());
-  response.joint_names = config.prob->GetKin()->getJointNames();
+  response.trajectory = getTraj(opt.x(), config_->prob->GetVars());
+  response.joint_names = config_->prob->GetKin()->getJointNames();
   if (opt.results().status == sco::OptStatus::OPT_PENALTY_ITERATION_LIMIT ||
       opt.results().status == sco::OptStatus::OPT_FAILED || opt.results().status == sco::OptStatus::INVALID)
   {
     response.status_code = -3;
-    response.status_description = status_code_map_[-3] + ": " + sco::statusToString(opt.results().status);
+    response.status_description = status_code_map_.at(-3) + ": " + sco::statusToString(opt.results().status);
   }
   else if (found)
   {
     response.status_code = -4;
-    response.status_description = status_code_map_[-4];
+    response.status_description = status_code_map_.at(-4);
   }
   else
   {
     ROS_INFO("Final trajectory is collision free");
     response.status_code = 0;
-    response.status_description = status_code_map_[0] + ": " + sco::statusToString(opt.results().status);
+    response.status_description = status_code_map_.at(0) + ": " + sco::statusToString(opt.results().status);
   }
 
   return (response.status_code >= 0);
 }
 
-bool TrajOptMotionPlanner::terminate() { return false; }
-void TrajOptMotionPlanner::clear() { request_ = PlannerRequest(); }
-}  // namespace tesseract_motion_planners
+bool TrajOptMotionPlanner::isConfigured() const
+{
+  return config_ != nullptr;
+}
+
+bool TrajOptMotionPlanner::configure(const TrajOptPlannerConfig& config)
+{
+  config_ = std::make_shared<TrajOptPlannerConfig>(config);
+  return true;
+}
+
+} // namespace tesseract_motion_planners

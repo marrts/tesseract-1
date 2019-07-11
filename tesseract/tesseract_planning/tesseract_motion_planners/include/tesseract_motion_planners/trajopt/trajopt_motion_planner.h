@@ -53,41 +53,32 @@ class TrajOptMotionPlanner : public MotionPlanner
 {
 public:
   /** @brief Construct a basic planner */
-  TrajOptMotionPlanner()
-  {
-    name_ = "TRAJOPT";
+  TrajOptMotionPlanner(const TrajOptPlannerConfig& config, const std::string& name = "TRAJOPT");
 
-    // Success Status Codes
-    status_code_map_[0] = "Found valid solution";
+  ~TrajOptMotionPlanner(){}
 
-    // Error Status Codes
-    status_code_map_[-1] = "Invalid config data format";
-    status_code_map_[-2] = "Failed to parse config data";
-    status_code_map_[-3] = "Failed to find valid solution";
-    status_code_map_[-4] = "Found valid solution, but is in collision";
-  }
-  ~TrajOptMotionPlanner() override {}
   /**
    * @brief Sets up the opimizer and solves a SQP problem read from json with no callbacks and dafault parameterss
    * @param response The results of the optimization. Primary output is the optimized joint trajectory
    * @return true if optimization complete
    */
-  bool solve(PlannerResponse& response) override;
-
-  /**
-   * @brief Sets up the optimizer and solves the SQP problem with no callbacks and default parameters
-   *
-   * Note: This does not use the request information because everything is provided by config parameter
-   *
-   * @param response The results of the optimization. Primary output is the optimized joint trajectory
-   * @param config Trajopt planner config
-   * @return true if optimization complete
-   */
-  bool solve(PlannerResponse& response, const TrajOptPlannerConfig& config);
+  bool solve(PlannerResponse& response) const override;
 
   bool terminate() override;
 
   void clear() override;
+
+  /**
+   * @brief checks whether the planner is properly configure for solving a motion plan
+   * @return True when it is configured correctly, false otherwise
+   */
+  bool isConfigured() const override;
+
+protected:
+
+  bool configure(const TrajOptPlannerConfig& config);
+
+  std::shared_ptr<TrajOptPlannerConfig> config_;
 };
 }  // namespace tesseract_motion_planners
 #endif  // TESSERACT_PLANNING_TRAJOPT_PLANNER_H

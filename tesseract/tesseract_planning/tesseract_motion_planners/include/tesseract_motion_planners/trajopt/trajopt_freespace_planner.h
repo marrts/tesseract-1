@@ -106,40 +106,41 @@ struct TrajOptFreespacePlannerConfig
 class TrajOptFreespacePlanner : public MotionPlanner
 {
 public:
+
   /** @brief Construct a basic planner */
-  TrajOptFreespacePlanner()
-  {
-    name_ = "TRAJOPT_FREESPACE";
+  TrajOptFreespacePlanner(const TrajOptFreespacePlannerConfig& config, const std::string& name = "TRAJOPT_FREESPACE");
 
-    // Error Status Codes
-    status_code_map_[-1] = "Invalid config data format";
-    status_code_map_[-2] = "Failed to parse config data";
-    status_code_map_[-3] = "";
-
-    // Converge Status Codes
-  }
-
-  // TODO: Not sure what to do here, but this is defined in the base as virtual
-  bool solve(PlannerResponse& response) override { return false; };
   /**
    * @brief Sets up the TrajOpt problem then solves using TrajOptMotionPlanner. It is intended to simplify setting up and
    * solving freespace motion problems.
    *
-   * This planner (and the associated config) does not expose all of the available configuration data in TrajOpt. This
-   * is done to simplify the interface. However, many problems may require more specific setups. In that case, the
+   * This planner (and the associated config passed to the constructor) does not expose all of the available configuration data in TrajOpt.
+   *  This is done to simplify the interface. However, many problems may require more specific setups. In that case, the
    * source code for this planner may be used as an example.
    *
    * Note: This does not use the request information because everything is provided by config parameter
    *
    * @param response The results of the optimization. Primary output is the optimized joint trajectory
-   * @param config Configures the freespace planner
    * @return true if optimization complete
    */
-  bool solve(PlannerResponse& response, TrajOptFreespacePlannerConfig& config);
+  bool solve(PlannerResponse& response) const override;
 
   bool terminate() override;
 
   void clear() override;
+
+  /**
+   * @brief checks whether the planner is properly configure for solving a motion plan
+   * @return True when it is configured correctly, false otherwise
+   */
+  bool isConfigured() const override;
+
+protected:
+
+  bool configure(const TrajOptFreespacePlannerConfig& config);
+
+  std::shared_ptr<trajopt::ProblemConstructionInfo> pci_;
+  std::shared_ptr<TrajOptFreespacePlannerConfig> config_;
 };
 }  // namespace tesseract_motion_planners
 #endif  // TESSERACT_PLANNING_TRAJOPT_PLANNER_H

@@ -99,35 +99,38 @@ class TrajOptArrayPlanner : public MotionPlanner
 {
 public:
   /** @brief Construct a basic planner */
-  TrajOptArrayPlanner()
-  {
-    name_ = "TRAJOPT_ARRAY";
-
-    // Error Status Codes
-    status_code_map_[-1] = "Invalid config data format";
-    status_code_map_[-2] = "Failed to parse config data";
-    status_code_map_[-3] = "";
-
-    // Converge Status Codes
-  }
-
-  // TODO: Not sure what to do here, but this is defined in the base as virtual
-  bool solve(PlannerResponse& response) override { return false; };
   /**
-   * @brief Sets up the TrajOpt problem then solves using TrajOptMotionPlanner
-   *
-   *
-   * Note: This does not use the request information because everything is provided by config parameter
-   *
-   * @param response The results of the optimization. Primary output is the optimized joint trajectory
-   * @param config Configures the freespace planner
-   * @return true if optimization complete
+   * @brief Construct a basic planner
+   * @param config Configuration object for the planner. The planner will get configured from this object and
+   *                will use this configuration for every solve attempt.
    */
-  bool solve(PlannerResponse& response, const TrajOptArrayPlannerConfig& config);
+  TrajOptArrayPlanner(const TrajOptArrayPlannerConfig& config, const std::string& name = "TRAJOPT_ARRAY");
+
+  /**
+   * @brief solves the plan using the configuration passed to the constructor and the request
+   * @param response The response
+   * @return True on success, false otherwise
+   */
+  bool solve(PlannerResponse& response) const override;
 
   bool terminate() override;
 
   void clear() override;
+
+  /**
+   * @brief checks whether the planner is properly configure for solving a motion plan
+   * @return True when it is configured correctly, false otherwise
+   */
+  bool isConfigured() const override;
+
+protected:
+
+  bool configure(const TrajOptArrayPlannerConfig& config);
+
+  std::shared_ptr<trajopt::ProblemConstructionInfo> pci_; /** @brief The problem info*/
+  std::shared_ptr<TrajOptArrayPlannerConfig> config_;     /** @brief the configuration passed at construction **/
+
+
 };
 }  // namespace tesseract_motion_planners
 #endif  // TESSERACT_PLANNING_TRAJOPT_PLANNER_H
