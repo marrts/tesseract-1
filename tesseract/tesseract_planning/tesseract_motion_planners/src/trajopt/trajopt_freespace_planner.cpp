@@ -26,7 +26,7 @@
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <jsoncpp/json/json.h>
-#include <ros/console.h>
+#include <console_bridge/console.h>
 #include <trajopt/plot_callback.hpp>
 #include <trajopt/problem_description.hpp>
 #include <trajopt_utils/config.hpp>
@@ -44,7 +44,7 @@ namespace tesseract_motion_planners
 {
 
 /** @brief Construct a basic planner */
-TrajOptFreespacePlanner::TrajOptFreespacePlanner(const TrajOptFreespacePlannerConfig& config, const std::string& name):
+TrajOptFreespacePlanner::TrajOptFreespacePlanner(const std::string& name):
     config_(nullptr),
     pci_(nullptr)
 {
@@ -54,43 +54,43 @@ TrajOptFreespacePlanner::TrajOptFreespacePlanner(const TrajOptFreespacePlannerCo
   status_code_map_[-1] = "Invalid config data format";
   status_code_map_[-2] = "Failed to parse config data";
   status_code_map_[-3] = "";
-
-  configure(config);
 }
 
 bool TrajOptFreespacePlanner::terminate()
 {
-  ROS_WARN("Termination of ongoing optimization is not implemented yet");
+  CONSOLE_BRIDGE_logWarn("Termination of ongoing optimization is not implemented yet");
   return false;
+}
+
+bool TrajOptFreespacePlanner::setConfiguration(const TrajOptFreespacePlannerConfig& config)
+{
+  configure(config);
+
+  return isConfigured();
 }
 
 bool TrajOptFreespacePlanner::solve(PlannerResponse& response)
 {
   if(!isConfigured())
   {
-    ROS_ERROR("Planner %s is not configured", name_.c_str());
+    CONSOLE_BRIDGE_logError("Planner %s is not configured", name_.c_str());
     return false;
   }
 
-  trajopt::TrajOptProbPtr prob = ConstructProblem(*pci_);
-
-  // -------- Solve the problem ------------
-  // ---------------------------------------
-  // Set the parameters in trajopt_planner
-  tesseract_motion_planners::TrajOptPlannerConfig config_planner(prob);
-  config_planner.params = config_->params_;
-  config_planner.callbacks = config_->callbacks_;
-
-  tesseract_motion_planners::TrajOptMotionPlanner planner(config_planner);
   tesseract_motion_planners::PlannerResponse planning_response;
 
   // Solve problem. Results are stored in the response
-  bool success = planner.solve(planning_response);
+  bool success = planner_.solve(planning_response);
   response = std::move(planning_response);
   return success;
 }
 
-void TrajOptFreespacePlanner::clear() { request_ = PlannerRequest(); }
+void TrajOptFreespacePlanner::clear()
+{
+  request_ = PlannerRequest();
+  config_ = nullptr;
+  pci_ = nullptr;
+}
 
 bool TrajOptFreespacePlanner::isConfigured() const
 {
@@ -102,7 +102,7 @@ bool TrajOptFreespacePlanner::configure(const TrajOptFreespacePlannerConfig& con
   // Check that parameters are valid
   if (config.tesseract_ == nullptr)
   {
-    ROS_ERROR("In trajopt_freespace_planner: env_ is a required parameter and has not been set");
+    CONSOLE_BRIDGE_logError("In trajopt_freespace_planner: env_ is a required parameter and has not been set");
     return false;
   }
 
@@ -113,7 +113,7 @@ bool TrajOptFreespacePlanner::configure(const TrajOptFreespacePlannerConfig& con
 
   if (pci.kin == nullptr)
   {
-    ROS_ERROR("In trajopt_array_planner: manipulator_ does not exist in kin_map_");
+    CONSOLE_BRIDGE_logError("In trajopt_array_planner: manipulator_ does not exist in kin_map_");
     return false;
   }
 
@@ -394,6 +394,15 @@ bool TrajOptFreespacePlanner::configure(const TrajOptFreespacePlannerConfig& con
 
   pci_ = std::make_shared<trajopt::ProblemConstructionInfo>(pci);
   config_ = std::make_shared<TrajOptFreespacePlannerConfig>(config);
+
+  trajopt::TrajOptProbPtr prob = ConstructProblem(*pci_);
+  tesseract_motion_planners::TrajOptPlannerConfig config_planner(prob);
+  config_planner.params = config_->params_;
+  config_planner.callbacks = config_->callbacks_;
+
+  planner_.clear();
+  planner_.setConfiguration(config_planner);
+
   return true;
 }
 

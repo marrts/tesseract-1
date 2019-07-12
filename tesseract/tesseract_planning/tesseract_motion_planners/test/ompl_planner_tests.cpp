@@ -90,9 +90,9 @@ TEST(TesseractPlanningUnit, OMPLPlannerUnit)
 //      std::make_shared<tesseract::tesseract_ros::ROSBasicPlotting>(env);
 
   // Step 4: Create a planning context for OMPL - this sets up the OMPL state environment for your given chain
-  tesseract_motion_planners::ChainOmplInterface ompl_context(tesseract->getEnvironment(), tesseract->getFwdKinematics("manipulator"));
+  tesseract_motion_planners::ChainOmplInterface ompl_context(tesseract->getEnvironment(), tesseract->getFwdKinematicsManagerConst()->getFwdKinematicSolver("manipulator"));
 
-  ompl::base::MotionValidatorPtr mv = std::make_shared<tesseract_motion_planners::ContinuousMotionValidator>(ompl_context.spaceInformation(), tesseract->getEnvironment(), tesseract->getFwdKinematics("manipulator"));
+  ompl::base::MotionValidatorPtr mv = std::make_shared<tesseract_motion_planners::ContinuousMotionValidator>(ompl_context.spaceInformation(), tesseract->getEnvironment(), tesseract->getFwdKinematicsManagerConst()->getFwdKinematicSolver("manipulator"));
   ompl_context.setMotionValidator(mv);
 
   // Step 5: Create an OMPL planner that we want to use

@@ -26,7 +26,7 @@
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <jsoncpp/json/json.h>
-#include <ros/console.h>
+#include <console_bridge/console.h>
 #include <trajopt/plot_callback.hpp>
 #include <trajopt/problem_description.hpp>
 #include <trajopt_utils/config.hpp>
@@ -43,7 +43,7 @@ using namespace trajopt;
 namespace tesseract_motion_planners
 {
 
-TrajOptArrayPlanner::TrajOptArrayPlanner(const TrajOptArrayPlannerConfig& config, const std::string& name):
+TrajOptArrayPlanner::TrajOptArrayPlanner(const std::string& name):
   config_(nullptr),
   pci_(nullptr)
 {
@@ -53,44 +53,44 @@ TrajOptArrayPlanner::TrajOptArrayPlanner(const TrajOptArrayPlannerConfig& config
   status_code_map_[-1] = "Invalid config data format";
   status_code_map_[-2] = "Failed to parse config data";
   status_code_map_[-3] = "";
-
-  configure(config);
 }
 
 bool TrajOptArrayPlanner::terminate()
 {
-  ROS_WARN("Termination of ongoing optimization is not implemented yet");
+  CONSOLE_BRIDGE_logWarn("Termination of ongoing optimization is not implemented yet");
   return false;
 }
-void TrajOptArrayPlanner::clear() { request_ = PlannerRequest(); }
+void TrajOptArrayPlanner::clear()
+{
+  request_ = PlannerRequest();
+  config_ = nullptr;
+  pci_ = nullptr;
+}
 
 bool TrajOptArrayPlanner::isConfigured() const
 {
   return pci_ != nullptr && config_ != nullptr;
 }
 
+bool TrajOptArrayPlanner::setConfiguration(const TrajOptArrayPlannerConfig& config)
+{
+  configure(config);
+
+  return isConfigured();
+}
+
 bool TrajOptArrayPlanner::solve(PlannerResponse& response)
 {
   if(!isConfigured())
   {
-    ROS_ERROR("Planner %s is not configured", name_.c_str());
+    CONSOLE_BRIDGE_logError("Planner %s is not configured", name_.c_str());
     return false;
   }
 
-  trajopt::TrajOptProbPtr prob = ConstructProblem(*pci_);
-
-  // -------- Solve the problem ------------
-  // ---------------------------------------
-  // Set the parameters in trajopt_planner
-  tesseract_motion_planners::TrajOptPlannerConfig config_planner(prob);
-  config_planner.params = config_->params_;
-  config_planner.callbacks = config_->callbacks_;
-
-  tesseract_motion_planners::TrajOptMotionPlanner planner(config_planner);
   tesseract_motion_planners::PlannerResponse planning_response;
 
   // Solve problem. Results are stored in the response
-  bool success = planner.solve(planning_response);
+  bool success = planner_.solve(planning_response);
   response = std::move(planning_response);
   return success;
 }
@@ -100,7 +100,7 @@ bool TrajOptArrayPlanner::configure(const TrajOptArrayPlannerConfig& config)
   // Check that parameters are valid
   if (config.tesseract_ == nullptr)
   {
-    ROS_ERROR("In trajopt_array_planner: tesseract_ is a required parameter and has not been set");
+    CONSOLE_BRIDGE_logError("In trajopt_array_planner: tesseract_ is a required parameter and has not been set");
     return false;
   }
 
@@ -111,7 +111,7 @@ bool TrajOptArrayPlanner::configure(const TrajOptArrayPlannerConfig& config)
 
   if (pci.kin == nullptr)
   {
-    ROS_ERROR("In trajopt_array_planner: manipulator_ does not exist in kin_map_");
+    CONSOLE_BRIDGE_logError("In trajopt_array_planner: manipulator_ does not exist in kin_map_");
     return false;
   }
 
@@ -292,6 +292,15 @@ bool TrajOptArrayPlanner::configure(const TrajOptArrayPlannerConfig& config)
 
   pci_ = std::make_shared<ProblemConstructionInfo>(pci);
   config_ = std::make_shared<TrajOptArrayPlannerConfig>(config);
+
+  trajopt::TrajOptProbPtr prob = ConstructProblem(*pci_);
+  tesseract_motion_planners::TrajOptPlannerConfig config_planner(prob);
+  config_planner.params = config_->params_;
+  config_planner.callbacks = config_->callbacks_;
+
+  planner_.clear();
+  planner_.setConfiguration(config_planner);
+
   return true;
 }
 

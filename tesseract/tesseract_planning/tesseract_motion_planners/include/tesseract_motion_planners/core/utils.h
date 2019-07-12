@@ -30,6 +30,7 @@
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <Eigen/Geometry>
 #include <memory>
+#include <console_bridge/console.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_environment/core/environment.h>
@@ -95,7 +96,7 @@ inline std::vector<WaypointPtr> interpolate(const Waypoint& start, const Waypoin
     }
     default:
     {
-      ROS_ERROR("Interpolator for Waypoint type %d is currently not support!", start.getType());
+      CONSOLE_BRIDGE_logError("Interpolator for Waypoint type %d is currently not support!", start.getType());
       return std::vector<WaypointPtr>();
     }
   }

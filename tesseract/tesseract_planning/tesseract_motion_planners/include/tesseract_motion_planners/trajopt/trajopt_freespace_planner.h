@@ -31,6 +31,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <trajopt/problem_description.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
+#include <tesseract_motion_planners/trajopt/trajopt_motion_planner.h>
 #include <tesseract_motion_planners/core/planner.h>
 #include <tesseract_motion_planners/core/waypoint.h>
 
@@ -108,13 +109,23 @@ class TrajOptFreespacePlanner : public MotionPlanner
 public:
 
   /** @brief Construct a basic planner */
-  TrajOptFreespacePlanner(const TrajOptFreespacePlannerConfig& config, const std::string& name = "TRAJOPT_FREESPACE");
+  TrajOptFreespacePlanner(const std::string& name = "TRAJOPT_FREESPACE");
+
+  /**
+   * @brief Set the configuration for the planner
+   *
+   * This must be called prior to calling solve.
+   *
+   * @param config The planners configuration
+   * @return True if successful otherwise false
+   */
+  bool setConfiguration(const TrajOptFreespacePlannerConfig& config);
 
   /**
    * @brief Sets up the TrajOpt problem then solves using TrajOptMotionPlanner. It is intended to simplify setting up and
    * solving freespace motion problems.
    *
-   * This planner (and the associated config passed to the constructor) does not expose all of the available configuration data in TrajOpt.
+   * This planner (and the associated config passed to the setConfiguration) does not expose all of the available configuration data in TrajOpt.
    *  This is done to simplify the interface. However, many problems may require more specific setups. In that case, the
    * source code for this planner may be used as an example.
    *
@@ -139,6 +150,7 @@ protected:
 
   bool configure(const TrajOptFreespacePlannerConfig& config);
 
+  tesseract_motion_planners::TrajOptMotionPlanner planner_; /** @brief The trajopt planner */
   std::shared_ptr<trajopt::ProblemConstructionInfo> pci_;
   std::shared_ptr<TrajOptFreespacePlannerConfig> config_;
 };
