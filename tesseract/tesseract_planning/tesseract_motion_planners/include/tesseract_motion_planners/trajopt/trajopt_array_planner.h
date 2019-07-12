@@ -31,6 +31,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <trajopt/problem_description.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
+#include <tesseract_motion_planners/trajopt/trajopt_motion_planner.h>
 #include <tesseract_motion_planners/core/planner.h>
 #include <tesseract_motion_planners/core/waypoint.h>
 
@@ -104,10 +105,20 @@ public:
    * @param config Configuration object for the planner. The planner will get configured from this object and
    *                will use this configuration for every solve attempt.
    */
-  TrajOptArrayPlanner(const TrajOptArrayPlannerConfig& config, const std::string& name = "TRAJOPT_ARRAY");
+  TrajOptArrayPlanner(const std::string& name = "TRAJOPT_ARRAY");
 
   /**
-   * @brief solves the plan using the configuration passed to the constructor and the request
+   * @brief Set the configuration for the planner
+   *
+   * This must be called prior to calling solve.
+   *
+   * @param config The planners configuration
+   * @return True if successful otherwise false
+   */
+  bool setConfiguration(const TrajOptArrayPlannerConfig& config);
+
+  /**
+   * @brief solves the plan using the configuration passed to the setConfiguration and the request
    * @param response The response
    * @return True on success, false otherwise
    */
@@ -125,11 +136,9 @@ public:
 
 protected:
 
-  bool configure(const TrajOptArrayPlannerConfig& config);
-
-  std::shared_ptr<trajopt::ProblemConstructionInfo> pci_; /** @brief The problem info*/
-  std::shared_ptr<TrajOptArrayPlannerConfig> config_;     /** @brief the configuration passed at construction **/
-
+  tesseract_motion_planners::TrajOptMotionPlanner planner_; /** @brief The trajopt planner */
+  std::shared_ptr<trajopt::ProblemConstructionInfo> pci_;   /** @brief The problem info*/
+  std::shared_ptr<TrajOptArrayPlannerConfig> config_;       /** @brief the configuration passed at construction **/
 
 };
 }  // namespace tesseract_motion_planners

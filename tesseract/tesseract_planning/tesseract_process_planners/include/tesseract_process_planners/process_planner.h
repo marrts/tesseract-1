@@ -2,6 +2,7 @@
 #define TESSERACT_PLANNING_PROCESS_PLANNER_H
 
 #include <tesseract_process_planners/process_definition.h>
+#include <tesseract_common/types.h>
 
 namespace tesseract_process_planners
 {
@@ -51,7 +52,7 @@ public:
    * @brief Given a tool path generate process specific plan
    * @param tool_path Process tool path
    */
-  virtual void setToolPath(const std::vector<std::vector<tesseract::tesseract_planning::WaypointPtr>>& tool_path) = 0;
+  virtual void setToolPath(const std::vector<std::vector<tesseract_motion_planners::WaypointPtr>>& tool_path) = 0;
 
   /**
    * @brief Get process definintion for the set tool path

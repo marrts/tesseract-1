@@ -26,7 +26,7 @@
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <jsoncpp/json/json.h>
-#include <ros/console.h>
+#include <console_bridge/console.h>
 #include <trajopt/plot_callback.hpp>
 #include <trajopt/problem_description.hpp>
 #include <trajopt_utils/config.hpp>
@@ -34,6 +34,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <trajopt_sco/optimizers.hpp>
 #include <trajopt_sco/sco_common.hpp>
 #include <tesseract_environment/core/utils.h>
+#include <boost/date_time/posix_time/posix_time.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_motion_planners/trajopt/trajopt_motion_planner.h>
@@ -42,7 +43,7 @@ using namespace trajopt;
 
 namespace tesseract_motion_planners
 {
-TrajOptMotionPlanner::TrajOptMotionPlanner(const TrajOptPlannerConfig& config, const std::string& name ):
+TrajOptMotionPlanner::TrajOptMotionPlanner(const std::string& name ):
     config_(nullptr)
 {
   name_ = name;
@@ -56,23 +57,25 @@ TrajOptMotionPlanner::TrajOptMotionPlanner(const TrajOptPlannerConfig& config, c
   status_code_map_[-2] = "Failed to parse config data";
   status_code_map_[-3] = "Failed to find valid solution";
   status_code_map_[-4] = "Found valid solution, but is in collision";
-
-  configure(config);
 }
 
 bool TrajOptMotionPlanner::terminate()
 {
-  ROS_WARN("Termination of ongoing optimization is not implemented yet");
+  CONSOLE_BRIDGE_logWarn("Termination of ongoing optimization is not implemented yet");
   return false;
 }
 
-void TrajOptMotionPlanner::clear() { request_ = PlannerRequest(); }
+void TrajOptMotionPlanner::clear()
+{
+  request_ = PlannerRequest();
+  config_ = nullptr;
+}
 
 bool TrajOptMotionPlanner::solve(PlannerResponse& response)
 {
   if(isConfigured())
   {
-    ROS_ERROR("Planner %s is not configured", name_.c_str());
+    CONSOLE_BRIDGE_logError("Planner %s is not configured", name_.c_str());
     return false;
   }
 
@@ -88,9 +91,9 @@ bool TrajOptMotionPlanner::solve(PlannerResponse& response)
   }
 
   // Optimize
-  ros::Time tStart = ros::Time::now();
+  auto tStart = boost::posix_time::second_clock::local_time();
   opt.optimize();
-  ROS_INFO("planning time: %.3f", (ros::Time::now() - tStart).toSec());
+  CONSOLE_BRIDGE_logInform("planning time: %.3f", (boost::posix_time::second_clock::local_time() - tStart).seconds());
 
   // Check and report collisions
   std::vector<tesseract_collision::ContactResultMap> collisions;
@@ -134,7 +137,7 @@ bool TrajOptMotionPlanner::solve(PlannerResponse& response)
   }
   else
   {
-    ROS_INFO("Final trajectory is collision free");
+    CONSOLE_BRIDGE_logInform("Final trajectory is collision free");
     response.status_code = 0;
     response.status_description = status_code_map_.at(0) + ": " + sco::statusToString(opt.results().status);
   }
@@ -147,7 +150,7 @@ bool TrajOptMotionPlanner::isConfigured() const
   return config_ != nullptr;
 }
 
-bool TrajOptMotionPlanner::configure(const TrajOptPlannerConfig& config)
+bool TrajOptMotionPlanner::setConfiguration(const TrajOptPlannerConfig& config)
 {
   config_ = std::make_shared<TrajOptPlannerConfig>(config);
   return true;

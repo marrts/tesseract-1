@@ -53,9 +53,19 @@ class TrajOptMotionPlanner : public MotionPlanner
 {
 public:
   /** @brief Construct a basic planner */
-  TrajOptMotionPlanner(const TrajOptPlannerConfig& config, const std::string& name = "TRAJOPT");
+  TrajOptMotionPlanner(const std::string& name = "TRAJOPT");
 
   ~TrajOptMotionPlanner(){}
+
+  /**
+   * @brief Set the configuration for the planner
+   *
+   * This must be called prior to calling solve.
+   *
+   * @param config The planners configuration
+   * @return True if successful otherwise false
+   */
+  bool setConfiguration(const TrajOptPlannerConfig& config);
 
   /**
    * @brief Sets up the opimizer and solves a SQP problem read from json with no callbacks and dafault parameterss
@@ -75,8 +85,6 @@ public:
   bool isConfigured() const override;
 
 protected:
-
-  bool configure(const TrajOptPlannerConfig& config);
 
   std::shared_ptr<TrajOptPlannerConfig> config_;
 };
