@@ -68,7 +68,7 @@ bool TrajOptMotionPlanner::terminate()
 
 void TrajOptMotionPlanner::clear() { request_ = PlannerRequest(); }
 
-bool TrajOptMotionPlanner::solve(PlannerResponse& response) const
+bool TrajOptMotionPlanner::solve(PlannerResponse& response)
 {
   if(isConfigured())
   {

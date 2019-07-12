@@ -69,7 +69,7 @@ bool TrajOptArrayPlanner::isConfigured() const
   return pci_ != nullptr && config_ != nullptr;
 }
 
-bool TrajOptArrayPlanner::solve(PlannerResponse& response) const
+bool TrajOptArrayPlanner::solve(PlannerResponse& response)
 {
   if(!isConfigured())
   {

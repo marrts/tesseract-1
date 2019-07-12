@@ -123,7 +123,7 @@ public:
    * @param response The results of the optimization. Primary output is the optimized joint trajectory
    * @return true if optimization complete
    */
-  bool solve(PlannerResponse& response) const override;
+  bool solve(PlannerResponse& response) override;
 
   bool terminate() override;
 

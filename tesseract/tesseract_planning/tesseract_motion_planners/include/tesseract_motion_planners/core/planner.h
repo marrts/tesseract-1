@@ -51,7 +51,7 @@ public:
   const StatusCodeMap& getAvailableStatusCodes() const { return status_code_map_; }
 
   /** @brief Solve the planner request problem */
-  virtual bool solve(PlannerResponse& res) const = 0;
+  virtual bool solve(PlannerResponse& res) = 0;
 
   /**
    * @brief checks if the planner is configured for planning

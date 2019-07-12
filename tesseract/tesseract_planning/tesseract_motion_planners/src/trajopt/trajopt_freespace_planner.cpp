@@ -64,7 +64,7 @@ bool TrajOptFreespacePlanner::terminate()
   return false;
 }
 
-bool TrajOptFreespacePlanner::solve(PlannerResponse& response) const
+bool TrajOptFreespacePlanner::solve(PlannerResponse& response)
 {
   if(!isConfigured())
   {

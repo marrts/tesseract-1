@@ -111,7 +111,7 @@ public:
    * @param response The response
    * @return True on success, false otherwise
    */
-  bool solve(PlannerResponse& response) const override;
+  bool solve(PlannerResponse& response) override;
 
   bool terminate() override;
 
