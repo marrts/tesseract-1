@@ -235,6 +235,7 @@ bool TrajOptFreespacePlanner::setConfiguration(const TrajOptFreespacePlannerConf
       pose->link = config.link_;
       pose->tcp = config.tcp_;
       pose->timestep = 0;
+      pose->target = start_pose->getParentLinkName();
       pose->xyz = start_pose->getPosition();
       pose->wxyz = start_pose->getOrientation();
       const Eigen::VectorXd& coeffs = start_pose->getCoefficients();
@@ -326,6 +327,7 @@ bool TrajOptFreespacePlanner::setConfiguration(const TrajOptFreespacePlannerConf
       pose->link = config.link_;
       pose->tcp = config.tcp_;
       pose->timestep = pci.basic_info.n_steps - 1;
+      pose->target = end_pose->getParentLinkName();
       pose->xyz = end_pose->getPosition();
       pose->wxyz = end_pose->getOrientation();
       const Eigen::VectorXd& coeffs = end_pose->getCoefficients();

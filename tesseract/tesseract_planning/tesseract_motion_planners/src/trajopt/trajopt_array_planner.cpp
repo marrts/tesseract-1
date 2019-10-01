@@ -229,6 +229,7 @@ bool TrajOptArrayPlanner::setConfiguration(const TrajOptArrayPlannerConfig& conf
         pose->link = config.link_;
         pose->tcp = config.tcp_;
         pose->timestep = static_cast<int>(ind);
+        pose->target = cart_waypoint->getParentLinkName();
         pose->xyz = cart_waypoint->getPosition();
         pose->wxyz = cart_waypoint->getOrientation();
         const Eigen::VectorXd& coeffs = cart_waypoint->getCoefficients();
