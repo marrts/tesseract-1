@@ -79,6 +79,13 @@ struct TrajOptPlannerConfig
    *       longest_valid_segment_fraction = longest_valid_segment_length / state_space.getMaximumExtent()
    */
   double longest_valid_segment_length = 0.5;
+
+  /**@brief Special link collision cost distances
+   * This is a vector of std::tuple<link1, link2, collision distance, collision coefficient */
+  std::vector<std::tuple<std::string, std::string, double, double>> special_collision_cost;
+  /**@brief Special link collision constraint distances
+   * This is a vector of std::tuple<link1, link2, collision distance, collision coefficient */
+  std::vector<std::tuple<std::string, std::string, double, double>> special_collision_constraint;
 };
 
 }  // namespace tesseract_motion_planners
