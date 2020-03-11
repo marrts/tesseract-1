@@ -165,6 +165,20 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(PlannerResponse& respon
 
   continuous_manager->setActiveCollisionObjects(adjacency_map->getActiveLinkNames());
   continuous_manager->setContactDistanceThreshold(0);
+
+  bool allowable_collision = false;
+  auto contact_test_type = tesseract_collision::ContactTestType::FIRST;
+  for (auto special_coll : config_->special_collision_constraint)
+  {
+    if (std::get<2>(special_coll) < 0)
+    {
+      allowable_collision = true;
+      contact_test_type = tesseract_collision::ContactTestType::ALL;
+    }
+  }
+
+
+
   collisions.clear();
   bool found = checkTrajectory(collisions,
                                *continuous_manager,
@@ -172,12 +186,58 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(PlannerResponse& respon
                                config_->prob->GetKin()->getJointNames(),
                                getTraj(opt.x(), config_->prob->GetVars()),
                                length,
-                               tesseract_collision::ContactTestType::FIRST,
+                               contact_test_type,
                                verbose);
 
   // Send response
   response.joint_trajectory.trajectory = getTraj(opt.x(), config_->prob->GetVars());
   response.joint_trajectory.joint_names = config_->prob->GetKin()->getJointNames();
+  if (allowable_collision)
+  {
+    found = false;
+    for (auto coll : collisions)
+    {
+      for (auto COLL : coll)
+      {
+        for (auto final_coll : COLL.second)
+        {
+          for (auto special_coll : config_->special_collision_constraint)
+          {
+            if ((final_coll.link_names[0].compare(std::get<0>(special_coll)) == 0 &&
+                final_coll.link_names[1].compare(std::get<1>(special_coll)) == 0) ||
+                (final_coll.link_names[0].compare(std::get<1>(special_coll)) == 0 &&
+                final_coll.link_names[1].compare(std::get<0>(special_coll)) == 0))
+            {
+              if (final_coll.distance < std::get<2>(special_coll))
+              {
+                std::cout << "Found unallowed collision between " << final_coll.link_names[0] <<
+                             " and " << final_coll.link_names[1] << " at a distance of " <<
+                             final_coll.distance << std::endl;
+                found = true;
+                break;
+              }
+              else
+              {
+                std::cout << "Found ALLOWED collision between " << final_coll.link_names[0] <<
+                             " and " << final_coll.link_names[1] << " at a distance of " <<
+                             final_coll.distance << std::endl;
+
+              }
+            }
+            else
+            {
+              std::cout << "Found unallowed collision between " << final_coll.link_names[0] <<
+                           " and " << final_coll.link_names[1] << " at a distance of " <<
+                           final_coll.distance << std::endl;
+              found = true;
+              break;
+            }
+
+          }
+        }
+      }
+    }
+  }
   if (opt.results().status != sco::OptStatus::OPT_CONVERGED)
   {
     response.status =
