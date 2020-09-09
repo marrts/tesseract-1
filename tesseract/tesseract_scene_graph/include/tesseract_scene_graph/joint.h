@@ -240,7 +240,7 @@ public:
   const std::string& getName() const { return name_; }
 
   /// The type of joint
-  JointType type { JointType::FIXED };
+  JointType type { JointType::UNKNOWN };
 
   /// \brief     type_       meaning of axis_
   /// ------------------------------------------------------
@@ -289,7 +289,7 @@ public:
     this->safety.reset();
     this->calibration.reset();
     this->mimic.reset();
-    this->type = JointType::FIXED;
+    this->type = JointType::UNKNOWN;
   }
 
   /**
