@@ -31,7 +31,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_visualization/visualization_loader.h>
 
-const std::string TESSERACT_IGNITION_LIBRARY = "tesseract_visualization_ignition_visualization";
+const std::string TESSERACT_IGNITION_LIBRARY = "tesseract_visualization_ignition_visualization_plugin";
 const std::string TESSERACT_IGNITION_CLASS = "tesseract_visualization::TesseractIgnitionVisualization";
 
 const std::string TESSERACT_VISUALIZATION_LIBRARY_ENV = "TESSERACT_VISUALIZATION_PLUGIN_LIBRARY";
