@@ -49,7 +49,7 @@ VisualizationLoader::VisualizationLoader() : derived_class_(TESSERACT_IGNITION_C
   std::string extension = ".so";
 #endif
 
-  library_path_ = "lib" + std::string(TESSERACT_VISUALIZATION_PLUGIN_PATH) + "/" + TESSERACT_IGNITION_LIBRARY + extension;
+  library_path_ = std::string(TESSERACT_VISUALIZATION_PLUGIN_PATH) + "/lib" + TESSERACT_IGNITION_LIBRARY + extension;
 
   // Check for environment variable to override default library
   const char* env_library = std::getenv(TESSERACT_VISUALIZATION_LIBRARY_ENV.c_str());
