@@ -73,9 +73,9 @@ int DiscreteContactCheckProcessGenerator::conditionalProcess(ProcessInput input)
   }
 
   // Get state solver
-  tesseract_environment::StateSolver::Ptr state_solver = input.tesseract->getEnvironmentConst()->getStateSolver();
+  tesseract_environment::StateSolver::Ptr state_solver = input.tesseract->getEnvironment()->getStateSolver();
   tesseract_collision::DiscreteContactManager::Ptr manager =
-      input.tesseract->getEnvironmentConst()->getDiscreteContactManager();
+      input.tesseract->getEnvironment()->getDiscreteContactManager();
   manager->setContactDistanceThreshold(contact_distance_);
 
   const auto* ci = input.results->cast_const<CompositeInstruction>();

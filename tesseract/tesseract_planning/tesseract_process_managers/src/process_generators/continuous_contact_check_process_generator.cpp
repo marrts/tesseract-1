@@ -76,9 +76,9 @@ int ContinuousContactCheckProcessGenerator::conditionalProcess(ProcessInput inpu
   }
 
   // Get state solver
-  tesseract_environment::StateSolver::Ptr state_solver = input.tesseract->getEnvironmentConst()->getStateSolver();
+  tesseract_environment::StateSolver::Ptr state_solver = input.tesseract->getEnvironment()->getStateSolver();
   tesseract_collision::ContinuousContactManager::Ptr manager =
-      input.tesseract->getEnvironmentConst()->getContinuousContactManager();
+      input.tesseract->getEnvironment()->getContinuousContactManager();
   manager->setContactDistanceThreshold(contact_distance_);
 
   const auto* ci = input.results->cast_const<CompositeInstruction>();

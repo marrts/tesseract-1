@@ -5,6 +5,8 @@ find_package(Eigen3 REQUIRED)
 find_package(console_bridge REQUIRED)
 find_package(tesseract_collision REQUIRED)
 find_package(tesseract_common REQUIRED)
+find_package(tesseract_environment REQUIRED)
+find_package(tesseract_scene_graph REQUIRED)
 find_package(tesseract REQUIRED)
 find_package(tesseract_command_language REQUIRED)
 find_package(class_loader REQUIRED)
@@ -14,9 +16,10 @@ find_package(cmake_common_scripts REQUIRED)
 find_package(ignition-common3 COMPONENTS profiler events av QUIET)
 find_package(ignition-transport8 QUIET)
 find_package(ignition-msgs5 QUIET)
+find_package(ignition-math6-eigen3 QUIET)
 
 set(IGNITION_FOUND FALSE)
-if (ignition-common3_FOUND AND ignition-transport8_FOUND AND ignition-msgs5_FOUND)
+if (ignition-common3_FOUND AND ignition-transport8_FOUND AND ignition-msgs5_FOUND AND ignition-math6-eigen3_FOUND)
   set(IGNITION_FOUND TRUE)
   message(STATUS "Ignition Visualization Library will be built!")
 endif()
@@ -40,7 +43,7 @@ add_library(${PROJECT_NAME} SHARED
     src/visualization_loader.cpp
     src/trajectory_interpolator.cpp
     src/trajectory_player.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC tesseract::tesseract tesseract::tesseract_command_language tesseract::tesseract_collision_core tesseract::tesseract_common console_bridge ${class_loader_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC tesseract::tesseract tesseract::tesseract_environment_core tesseract::tesseract_scene_graph tesseract::tesseract_command_language tesseract::tesseract_collision_core tesseract::tesseract_common console_bridge ${class_loader_LIBRARIES})
 target_compile_options(${PROJECT_NAME} PRIVATE ${TESSERACT_COMPILE_OPTIONS})
 target_clang_tidy(${PROJECT_NAME} ARGUMENTS ${TESSERACT_CLANG_TIDY_ARGS} ENABLE ${TESSERACT_ENABLE_CLANG_TIDY})
 target_cxx_version(${PROJECT_NAME} PUBLIC VERSION ${TESSERACT_CXX_VERSION})
@@ -87,6 +90,7 @@ if (IGNITION_FOUND)
   target_link_libraries(${PROJECT_NAME}_ignition_visualization PUBLIC
     ${PROJECT_NAME}
     ${PROJECT_NAME}_ignition
+    tesseract::tesseract_scene_graph
     tesseract::tesseract_common
     tesseract::tesseract_command_language
     ${IGNITION-COMMON_LIBRARIES}
