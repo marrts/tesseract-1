@@ -240,7 +240,7 @@ public:
   const std::string& getName() const { return name_; }
 
   /// The type of joint
-  JointType type;
+  JointType type { JointType::FIXED };
 
   /// \brief     type_       meaning of axis_
   /// ------------------------------------------------------
@@ -261,7 +261,7 @@ public:
   std::string parent_link_name;
 
   /// transform from Parent Link frame to Joint frame
-  Eigen::Isometry3d parent_to_joint_origin_transform;
+  Eigen::Isometry3d parent_to_joint_origin_transform { Eigen::Isometry3d::Identity() };
 
   /// Joint Dynamics
   JointDynamics::Ptr dynamics;
@@ -289,7 +289,7 @@ public:
     this->safety.reset();
     this->calibration.reset();
     this->mimic.reset();
-    this->type = JointType::UNKNOWN;
+    this->type = JointType::FIXED;
   }
 
   /**

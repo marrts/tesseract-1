@@ -34,9 +34,9 @@ tesseract_variables()
 #####################################
 # Define compile-time default variables
 if(MSVC)
-  set(TESSERACT_VISUALIZATION_PLUGIN_PATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+  set(TESSERACT_VISUALIZATION_PLUGIN_PATH ${CMAKE_INSTALL_PREFIX}/bin)
 else()
-  set(TESSERACT_VISUALIZATION_PLUGIN_PATH ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
+  set(TESSERACT_VISUALIZATION_PLUGIN_PATH ${CMAKE_INSTALL_PREFIX}/lib)
 endif()
 
 add_library(${PROJECT_NAME} SHARED
@@ -109,7 +109,19 @@ if (IGNITION_FOUND)
     ${IGNITION-TRANSPORT_INCLUDE_DIRS}
     ${IGNITION-MSGS_INCLUDE_DIRS})
 
-  list(APPEND PACKAGE_LIBRARIES ${PROJECT_NAME}_ignition ${PROJECT_NAME}_ignition_visualization)
+  add_library(${PROJECT_NAME}_ignition_visualization_plugin SHARED
+      src/ignition/tesseract_ignition_visualization_plugin.cpp)
+  target_link_libraries(${PROJECT_NAME}_ignition_visualization_plugin PUBLIC
+    ${PROJECT_NAME}_ignition_visualization ${class_loader_LIBRARIES})
+  target_compile_options(${PROJECT_NAME}_ignition_visualization_plugin PRIVATE ${TESSERACT_COMPILE_OPTIONS})
+  target_cxx_version(${PROJECT_NAME}_ignition_visualization_plugin PUBLIC VERSION ${TESSERACT_CXX_VERSION})
+  target_include_directories(${PROJECT_NAME}_ignition_visualization_plugin PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+      "$<INSTALL_INTERFACE:include>")
+  target_include_directories(${PROJECT_NAME}_ignition_visualization SYSTEM PUBLIC
+    ${class_loader_INCLUDE_DIRS})
+
+  list(APPEND PACKAGE_LIBRARIES ${PROJECT_NAME}_ignition ${PROJECT_NAME}_ignition_visualization ${PROJECT_NAME}_ignition_visualization_plugin)
 else()
   message(WARNING "Ignition Visualization Library will not be built!")
 endif()
