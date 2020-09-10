@@ -162,6 +162,7 @@ void TesseractIgnitionVisualization::plotTrajectory(const tesseract_planning::In
           std::this_thread::sleep_for(std::chrono::duration<double>(dt));
         else
           std::this_thread::sleep_for(fp_s);
+        prev_time = swp->time;
 
         assert(static_cast<long>(swp->joint_names.size()) == swp->position.size());
         tesseract_environment::EnvState::Ptr state = state_solver->getState(swp->joint_names, swp->position);
@@ -193,6 +194,7 @@ void TesseractIgnitionVisualization::plotTrajectory(const tesseract_planning::In
         std::this_thread::sleep_for(std::chrono::duration<double>(dt));
       else
         std::this_thread::sleep_for(fp_s);
+      prev_time = swp->time;
 
       assert(static_cast<long>(swp->joint_names.size()) == swp->position.size());
       tesseract_environment::EnvState::Ptr state = state_solver->getState(swp->joint_names, swp->position);
