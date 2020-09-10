@@ -55,7 +55,7 @@ TesseractIgnitionVisualization::TesseractIgnitionVisualization()
 {
   scene_pub_ = node_.Advertise<ignition::msgs::Scene>(DEFAULT_SCENE_TOPIC_NAME);
   pose_pub_ = node_.Advertise<ignition::msgs::Pose_V>(DEFAULT_POSE_TOPIC_NAME);
-  deletion_pub_ = node_.Advertise<ignition::msgs::Pose_V>(DEFAULT_DELETION_TOPIC_NAME);
+  deletion_pub_ = node_.Advertise<ignition::msgs::UInt32_V>(DEFAULT_DELETION_TOPIC_NAME);
 }
 
 bool TesseractIgnitionVisualization::init(tesseract::Tesseract::ConstPtr thor)
@@ -391,27 +391,31 @@ void TesseractIgnitionVisualization::plotToolPath(const tesseract_planning::Inst
         const auto* swp = pi->getWaypoint().cast_const<StateWaypoint>();
         assert(static_cast<long>(swp->joint_names.size()) == swp->position.size());
         tesseract_environment::EnvState::Ptr state = state_solver->getState(swp->joint_names, swp->position);
-        addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms[tip_link] * tcp, 1);
+        addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms[tip_link] * tcp, 0.05);
       }
       else if (isJointWaypoint(pi->getWaypoint()))
       {
         const auto* jwp = pi->getWaypoint().cast_const<JointWaypoint>();
         assert(static_cast<long>(jwp->joint_names.size()) == jwp->size());
         tesseract_environment::EnvState::Ptr state = state_solver->getState(jwp->joint_names, *jwp);
-        addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms[tip_link] * tcp, 1);
+        addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms[tip_link] * tcp, 0.05);
       }
       else if (isCartesianWaypoint(pi->getWaypoint()))
       {
         const auto* cwp = pi->getWaypoint().cast_const<CartesianWaypoint>();
         if (working_frame.empty())
         {
-          addAxis(entity_manager_, *link_msg, cnt, link_name, (*cwp) * tcp, 1);
+          addAxis(entity_manager_, *link_msg, cnt, link_name, (*cwp) * tcp, 0.05);
         }
         else
         {
           tesseract_environment::EnvState::ConstPtr state = thor_->getEnvironment()->getCurrentState();
-          addAxis(
-              entity_manager_, *link_msg, cnt, link_name, state->link_transforms.at(working_frame) * (*cwp) * tcp, 1);
+          addAxis(entity_manager_,
+                  *link_msg,
+                  cnt,
+                  link_name,
+                  state->link_transforms.at(working_frame) * (*cwp) * tcp,
+                  0.05);
         }
       }
       else
@@ -451,26 +455,27 @@ void TesseractIgnitionVisualization::plotToolPath(const tesseract_planning::Inst
       const auto* swp = pi->getWaypoint().cast_const<StateWaypoint>();
       assert(static_cast<long>(swp->joint_names.size()) == swp->position.size());
       tesseract_environment::EnvState::Ptr state = state_solver->getState(swp->joint_names, swp->position);
-      addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms[tip_link] * tcp, 1);
+      addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms[tip_link] * tcp, 0.05);
     }
     else if (isJointWaypoint(pi->getWaypoint()))
     {
       const auto* jwp = pi->getWaypoint().cast_const<JointWaypoint>();
       assert(static_cast<long>(jwp->joint_names.size()) == jwp->size());
       tesseract_environment::EnvState::Ptr state = state_solver->getState(jwp->joint_names, *jwp);
-      addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms[tip_link] * tcp, 1);
+      addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms[tip_link] * tcp, 0.05);
     }
     else if (isCartesianWaypoint(pi->getWaypoint()))
     {
       const auto* cwp = pi->getWaypoint().cast_const<CartesianWaypoint>();
       if (working_frame.empty())
       {
-        addAxis(entity_manager_, *link_msg, cnt, link_name, (*cwp) * tcp, 1);
+        addAxis(entity_manager_, *link_msg, cnt, link_name, (*cwp) * tcp, 0.05);
       }
       else
       {
         tesseract_environment::EnvState::ConstPtr state = env_->getCurrentState();
-        addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms.at(working_frame) * (*cwp) * tcp, 1);
+        addAxis(
+            entity_manager_, *link_msg, cnt, link_name, state->link_transforms.at(working_frame) * (*cwp) * tcp, 0.05);
       }
     }
     else
@@ -482,6 +487,8 @@ void TesseractIgnitionVisualization::plotToolPath(const tesseract_planning::Inst
   {
     ignerr << "plotTrajectoy: Unsupported Instruction Type!" << std::endl;
   }
+
+  scene_pub_.Publish(scene_msg);
 }
 
 void TesseractIgnitionVisualization::plotContactResults(const std::vector<std::string>& link_names,
