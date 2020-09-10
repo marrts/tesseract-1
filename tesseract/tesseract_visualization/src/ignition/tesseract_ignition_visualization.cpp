@@ -405,17 +405,12 @@ void TesseractIgnitionVisualization::plotToolPath(const tesseract_planning::Inst
         const auto* cwp = pi->getWaypoint().cast_const<CartesianWaypoint>();
         if (working_frame.empty())
         {
-          addAxis(entity_manager_, *link_msg, cnt, link_name, (*cwp) * tcp, 0.05);
+          addAxis(entity_manager_, *link_msg, cnt, link_name, (*cwp), 0.05);
         }
         else
         {
           tesseract_environment::EnvState::ConstPtr state = thor_->getEnvironment()->getCurrentState();
-          addAxis(entity_manager_,
-                  *link_msg,
-                  cnt,
-                  link_name,
-                  state->link_transforms.at(working_frame) * (*cwp) * tcp,
-                  0.05);
+          addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms.at(working_frame) * (*cwp), 0.05);
         }
       }
       else
@@ -469,13 +464,12 @@ void TesseractIgnitionVisualization::plotToolPath(const tesseract_planning::Inst
       const auto* cwp = pi->getWaypoint().cast_const<CartesianWaypoint>();
       if (working_frame.empty())
       {
-        addAxis(entity_manager_, *link_msg, cnt, link_name, (*cwp) * tcp, 0.05);
+        addAxis(entity_manager_, *link_msg, cnt, link_name, (*cwp), 0.05);
       }
       else
       {
         tesseract_environment::EnvState::ConstPtr state = env_->getCurrentState();
-        addAxis(
-            entity_manager_, *link_msg, cnt, link_name, state->link_transforms.at(working_frame) * (*cwp) * tcp, 0.05);
+        addAxis(entity_manager_, *link_msg, cnt, link_name, state->link_transforms.at(working_frame) * (*cwp), 0.05);
       }
     }
     else
